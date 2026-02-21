@@ -8,10 +8,17 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters:[
-    {left:'$$',right:'$$',display:true},
-    {left:'\\(',right:'\\)',display:false}
-  ]});"></script>
+  onload="
+    window.katexOpts = {
+      delimiters:[
+        {left:'$$',  right:'$$',  display:true},
+        {left:'\\[', right:'\\]', display:true},
+        {left:'\\(', right:'\\)', display:false}
+      ],
+      throwOnError: false
+    };
+    renderMathInElement(document.body, window.katexOpts);
+  "></script>
 <style>
   :root {
     --bg: #080c10;
@@ -1307,6 +1314,12 @@ function goSection(n) {
   if (n === 5) initSim();
   if (n === 6) initKarman();
   if (n === 8) slbmInitIfNeeded();
+
+  // Re-render KaTeX in the newly visible section (catches formulas hidden on initial load)
+  if (window.katexOpts) {
+    const sec = document.getElementById('sec' + n);
+    if (sec) renderMathInElement(sec, window.katexOpts);
+  }
 }
 
 // ═══════════════════════════════════════
