@@ -383,11 +383,6 @@
     cursor: crosshair;
   }
 
-  .d3q27-layer-btn.active-layer {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--highlight);
-  }
 
   .param-row {
     display: flex;
@@ -561,6 +556,7 @@
   .sc-track:last-child { border-right: none; }
   .sc-track:hover { background: rgba(0,212,255,0.05); color: var(--text); }
   .active-track { background: rgba(0,212,255,0.12) !important; color: var(--accent) !important; }
+  .hq-phase-btn.active-phase { border-color: var(--accent); color: var(--accent); background: var(--highlight); }
 
   @media (max-width: 780px) {
     #scMainLayout { grid-template-columns: 1fr !important; }
@@ -587,6 +583,7 @@
     <nav class="chapter-nav" id="chapNav">
       <button class="active" onclick="goSection(0)">01 · Introduction</button>
       <button onclick="goSection(1)">02 · The Lattice</button>
+      <button onclick="goSection('1b')">02b · Hermite Roots</button>
       <button onclick="goSection(2)">03 · Distributions</button>
       <button onclick="goSection(3)">04 · Algorithm</button>
       <button onclick="goSection(4)">05 · Stream &amp; Collide</button>
@@ -693,16 +690,21 @@
 
     <!-- D3Q27 interactive canvas -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 24px;margin:20px 0;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-        <span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">▶ D3Q27 Stencil — Interactive</span>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);">SHOW LAYER:</span>
-          <button class="btn d3q27-layer-btn active-layer" data-layer="-1" onclick="d3q27ToggleLayer(-1,this)">z = −1</button>
-          <button class="btn d3q27-layer-btn active-layer" data-layer="0"  onclick="d3q27ToggleLayer(0,this)">z = 0</button>
-          <button class="btn d3q27-layer-btn active-layer" data-layer="1"  onclick="d3q27ToggleLayer(1,this)">z = +1</button>
-          <button class="btn" onclick="d3q27Reset()" style="margin-left:8px;">↺ RESET</button>
-        </div>
+
+      <!-- Row 1: stencil selector -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+        <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:1px;white-space:nowrap;">STENCIL:</span>
+        <button class="btn d3q27-stencil-btn" id="d3q27Btn15" onclick="d3q27SetStencil(15)" style="font-size:11px;">D3Q15</button>
+        <button class="btn d3q27-stencil-btn" id="d3q27Btn19" onclick="d3q27SetStencil(19)" style="font-size:11px;">D3Q19</button>
+        <button class="btn d3q27-stencil-btn active-layer" id="d3q27Btn27" onclick="d3q27SetStencil(27)" style="font-size:11px;">D3Q27</button>
+
+        <button class="btn" onclick="d3q27Reset()" style="margin-left:4px;">↺</button>
       </div>
+
+      <!-- Row 2: stencil description -->
+      <div id="d3q27StencilDesc" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);margin-bottom:14px;line-height:1.8;padding:8px 10px;background:rgba(0,212,255,0.04);border:1px solid var(--border);border-radius:2px;"></div>
+
+      <!-- Row 3: canvas + info -->
       <div style="display:grid;grid-template-columns:1fr 260px;gap:20px;align-items:start;">
         <div>
           <canvas id="d3q27Canvas" width="480" height="420"
@@ -712,7 +714,7 @@
             ontouchstart="d3q27TouchStart(event)" ontouchmove="d3q27TouchMove(event)" ontouchend="d3q27MouseUp()">
           </canvas>
           <p style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:6px;">
-            🖱 Drag to rotate · Toggle layers above · Hover for node info
+            🖱 Drag to rotate · Select stencil · Hover for node info
           </p>
         </div>
         <div id="d3q27Info" style="font-family:'Space Mono',monospace;font-size:11px;line-height:2;color:var(--text-dim);">
@@ -720,18 +722,71 @@
           <div>Hover a node to inspect</div>
         </div>
       </div>
+
       <!-- Legend -->
       <div style="display:flex;gap:20px;margin-top:12px;flex-wrap:wrap;font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);">
-        <span>● <span style="color:#00d4ff">Centre</span> — rest (q=0), w=8/27</span>
-        <span>● <span style="color:#4ade80">Face</span> — 6 nodes, w=2/27</span>
-        <span>● <span style="color:#f97316">Edge</span> — 12 nodes, w=1/54</span>
-        <span>● <span style="color:#a78bfa">Corner</span> — 8 nodes, w=1/216</span>
+        <span>● <span style="color:#00d4ff">Centre</span> — rest, |e|=0</span>
+        <span>● <span style="color:#4ade80">Face</span> — |e|=1</span>
+        <span>● <span style="color:#f97316">Edge</span> — |e|=√2</span>
+        <span>● <span style="color:#a78bfa">Corner</span> — |e|=√3</span>
+        <span style="color:rgba(100,120,140,0.6)">● Dimmed = excluded from stencil</span>
       </div>
     </div>
 
     <div class="section-nav">
       <button class="btn" onclick="goSection(0)">← Introduction</button>
       <button class="btn primary" onclick="goSection(2)">Next: Distributions →</button>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════
+       SECTION 1b: Gauss–Hermite Quadrature & Tensor Products
+  ═══════════════════════════════════════════════ -->
+  <section class="section" id="sec1b">
+    <h2><span class="num">02b · DERIVATION</span>From Hermite Roots to D1Q3, D2Q9, D3Q27</h2>
+
+    <p>The discrete velocity set is not chosen arbitrarily — it falls out of <strong>Gauss–Hermite quadrature</strong>. The roots of the degree-3 probabilists' Hermite polynomial He₃(ξ) give a 1D three-point stencil called <em>D1Q3</em>. Taking the tensor product with itself yields <em>D2Q9</em>; one more tensor product gives <em>D3Q27</em>.</p>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 24px;margin:20px 0;">
+
+      <!-- Phase buttons + controls -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="btn hq-phase-btn active-phase" id="hqBtn0" onclick="hqGoPhase(0)">1 · He₃ ROOTS</button>
+        <button class="btn hq-phase-btn" id="hqBtn1" onclick="hqGoPhase(1)">2 · D1Q3</button>
+        <button class="btn hq-phase-btn" id="hqBtn2" onclick="hqGoPhase(2)">3 · ⊗ D2Q9</button>
+        <button class="btn hq-phase-btn" id="hqBtn3" onclick="hqGoPhase(3)">4 · ⊗ D3Q27</button>
+        <div style="flex:1;min-width:8px;"></div>
+        <button class="btn" id="hqPauseBtn" onclick="hqToggle()" style="padding:5px 14px;font-size:10px;">■ PAUSE</button>
+        <label style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);">SPEED</label>
+        <input type="range" id="hqSpeedSlider" min="0.2" max="3" step="0.1" value="1" style="width:70px;accent-color:var(--accent);">
+        <button class="btn" onclick="hqReset()" style="padding:5px 10px;font-size:10px;">↺</button>
+      </div>
+
+      <!-- Progress track -->
+      <div style="display:flex;gap:0;margin-bottom:16px;border:1px solid var(--border);border-radius:3px;overflow:hidden;font-family:'Space Mono',monospace;font-size:9px;">
+        <div id="hqT0" class="sc-track active-track" style="flex:1;text-align:center;padding:5px 0;cursor:pointer;" onclick="hqGoPhase(0)">1 · He₃ ROOTS</div>
+        <div id="hqT1" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:pointer;" onclick="hqGoPhase(1)">2 · D1Q3</div>
+        <div id="hqT2" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:pointer;" onclick="hqGoPhase(2)">3 · ⊗ D2Q9</div>
+        <div id="hqT3" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:pointer;" onclick="hqGoPhase(3)">4 · ⊗ D3Q27</div>
+      </div>
+
+      <!-- Canvas + sidebar -->
+      <div style="display:grid;grid-template-columns:1fr 240px;gap:20px;align-items:start;">
+        <canvas id="hqCanvas" width="580" height="440"
+          style="width:100%;display:block;border:1px solid var(--border);border-radius:2px;background:#070b12;">
+        </canvas>
+        <div style="font-family:'Space Mono',monospace;font-size:11px;line-height:1.9;color:var(--text-dim);">
+          <div id="hqInfoTitle" style="color:var(--accent);font-size:10px;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:6px;">PHASE 1</div>
+          <div id="hqInfoBody" style="font-size:10.5px;line-height:1.8;">Initialising...</div>
+          <div id="hqInfoMath" style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px;color:var(--accent2);font-size:11px;line-height:2.2;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-nav">
+      <button class="btn" onclick="goSection(1)">← The Lattice</button>
+      <button class="btn primary" onclick="goSection('1b')">Next: Hermite Roots →</button>
     </div>
   </section>
 
@@ -1359,29 +1414,43 @@ function pauseAllSims() {
     const sb = document.getElementById('slbmPlayBtn');
     if (sb) sb.textContent = '▶ PLAY';
   }
+  // Hermite quadrature animation
+  if (typeof hqRunning !== 'undefined' && hqRunning) {
+    hqRunning = false;
+    const hb = document.getElementById('hqPauseBtn');
+    if (hb) hb.textContent = '▶ PLAY';
+  }
 }
 
 function goSection(n) {
   pauseAllSims();
 
-  document.querySelectorAll('.section').forEach((s,i) => {
-    s.classList.toggle('active', i === n);
-  });
+  // Show the correct section (sec1b has string id)
+  const allSecs = document.querySelectorAll('.section');
+  allSecs.forEach(s => s.classList.remove('active'));
+  const targetSec = document.getElementById(n === '1b' ? 'sec1b' : 'sec' + n);
+  if (targetSec) targetSec.classList.add('active');
+
+  // Highlight nav button — button order: 0,1,1b,2,3,4,5,6,7,8
+  const navIds = [0,1,'1b',2,3,4,5,6,7,8];
   document.querySelectorAll('.chapter-nav button').forEach((b,i) => {
-    b.classList.toggle('active', i === n);
+    b.classList.toggle('active', navIds[i] === n);
   });
+
   currentSection = n;
-  document.getElementById('progressFill').style.width = ((n+1)/totalSections*100) + '%';
+  const pct = n === '1b' ? (2.5/totalSections*100) : ((n+1)/totalSections*100);
+  document.getElementById('progressFill').style.width = pct + '%';
   window.scrollTo({top:0, behavior:'smooth'});
 
+  if (n === '1b') { hqRunning = true; const hb = document.getElementById('hqPauseBtn'); if(hb) hb.textContent = '■ PAUSE'; hqStart(); }
   if (n === 4) { scInitIfNeeded(); flyInitIfNeeded(); }
   if (n === 5) { initSim(); running = true; const pb = document.getElementById('playBtn'); if(pb) pb.textContent = '■ PAUSE'; }
   if (n === 6) { initKarman(); kvRunning = true; const kb = document.getElementById('kvPlayBtn'); if(kb) kb.textContent = '■ PAUSE'; }
   if (n === 8) { slbmInitIfNeeded(); slbmRunning = true; slbmStart(); const sb = document.getElementById('slbmPlayBtn'); if(sb) sb.textContent = '■ PAUSE'; }
 
-  // Re-render KaTeX in the newly visible section (catches formulas hidden on initial load)
   if (window.katexOpts) {
-    const sec = document.getElementById('sec' + n);
+    const secId = n === '1b' ? 'sec1b' : 'sec' + n;
+    const sec = document.getElementById(secId);
     if (sec) renderMathInElement(sec, window.katexOpts);
   }
 }
@@ -4408,150 +4477,174 @@ function slbmInitIfNeeded() {
 
 
 // ═══════════════════════════════════════════════════════════════
-// D3Q27 INTERACTIVE 3D STENCIL
+// D3Q27 INTERACTIVE 3D STENCIL  (D3Q15 / D3Q19 / D3Q27 selector)
 // ═══════════════════════════════════════════════════════════════
 (function() {
 
-const WEIGHTS = {
-  0: 8/27,   // centre
-  1: 2/27,   // face
-  2: 1/54,   // edge
-  3: 1/216   // corner
+// ── Stencil definitions ──────────────────────────────────────
+// type: 0=centre, 1=face(|e|=1), 2=edge(|e|=√2), 3=corner(|e|=√3)
+// node speed-squared for depth sort only (not physical weights)
+const W = { 0: 0, 1: 1, 2: 2, 3: 3 }; // used only as type key
+
+const STENCILS = {
+  15: {
+    label: 'D3Q15',
+    types: [0, 1, 3],   // centre + 6 face + 8 corner  = 15
+    desc:  'D3Q15 — 1 centre + 6 face (±1,0,0) + 8 corner (±1,±1,±1) = 15 velocities.\nOmits edge directions (|e|=√2). Lowest memory; less isotropic than D3Q19/27.'
+  },
+  19: {
+    label: 'D3Q19',
+    types: [0, 1, 2],   // centre + 6 face + 12 edge   = 19
+    desc:  'D3Q19 — 1 centre + 6 face (±1,0,0) + 12 edge (±1,±1,0) = 19 velocities.\nOmits corner directions (|e|=√3). Good balance of accuracy and cost; most popular 3D choice.'
+  },
+  27: {
+    label: 'D3Q27',
+    types: [0, 1, 2, 3], // all 27
+    desc:  'D3Q27 — full 3×3×3 tensor product: 1 + 6 + 12 + 8 = 27 velocities.\nAll directions included. Best isotropy; used in Cumulant LBM and compressible extensions.'
+  }
 };
+
 const TYPE_LABEL = ['centre','face','edge','corner'];
 const TYPE_COLOR  = ['#00d4ff','#4ade80','#f97316','#a78bfa'];
+const TYPE_DIM    = ['rgba(0,180,210,0.18)','rgba(74,222,128,0.18)','rgba(249,115,22,0.18)','rgba(167,139,250,0.18)'];
 
-// Build all 27 nodes
+// Build all 27 nodes once
 const NODES = [];
 for (let dz=-1; dz<=1; dz++) for (let dy=-1; dy<=1; dy++) for (let dx=-1; dx<=1; dx++) {
   const n = Math.abs(dx)+Math.abs(dy)+Math.abs(dz);
-  const type = n===0 ? 0 : (n===1 ? 1 : (n===2 ? 2 : 3));
-  NODES.push({dx,dy,dz,type,w:WEIGHTS[type]});
+  const type = n===0?0:(n===1?1:(n===2?2:3));
+  NODES.push({dx,dy,dz,type,w:W[type]});
 }
 
-// Rotation state
-let rotX = 0.42, rotY = -0.55;
+// State
+let rotX=0.42, rotY=-0.55;
 let dragging=false, lastMX=0, lastMY=0;
-let layerVis = {'-1':true,'0':true,'1':true};
-let hovered = null;
+let hovered=null;
+let activeStencil=27;
 
-function project(x,y,z, cx,cy, scale) {
-  // Isometric-ish with rotation around Y then X
-  const cosY=Math.cos(rotY), sinY=Math.sin(rotY);
-  const cosX=Math.cos(rotX), sinX=Math.sin(rotX);
-  const rx = x*cosY - z*sinY;
-  const ry2 = z*cosY + x*sinY;
-  const ry = y*cosX - ry2*sinX;
-  const rz = ry2*cosX + y*sinX;
-  return {sx: cx+rx*scale, sy: cy-ry*scale, depth: rz};
+function inStencil(node) {
+  return STENCILS[activeStencil].types.includes(node.type);
+}
+
+function project(x,y,z,cx,cy,scale) {
+  const cosY=Math.cos(rotY),sinY=Math.sin(rotY),cosX=Math.cos(rotX),sinX=Math.sin(rotX);
+  const rx=x*cosY-z*sinY, ry2=z*cosY+x*sinY;
+  const ry=y*cosX-ry2*sinX, rz=ry2*cosX+y*sinX;
+  return {sx:cx+rx*scale, sy:cy-ry*scale, depth:rz};
 }
 
 function drawD3Q27() {
-  const canvas = document.getElementById('d3q27Canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W=canvas.width, H=canvas.height;
-  const cx=W/2, cy=H/2, scale=W*0.18;
+  const canvas=document.getElementById('d3q27Canvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const W2=canvas.width, H=canvas.height, cx=W2/2, cy=H/2, scale=W2*0.18;
+  ctx.fillStyle='#070b12'; ctx.fillRect(0,0,W2,H);
 
-  ctx.fillStyle='#070b12'; ctx.fillRect(0,0,W,H);
-
-  // Depth-sort nodes
-  const projected = NODES.map((n,i) => {
-    const p = project(n.dx,n.dy,n.dz,cx,cy,scale);
+  const projected=NODES.map((n,i)=>{
+    const p=project(n.dx,n.dy,n.dz,cx,cy,scale);
     return {...n,...p,idx:i};
   }).sort((a,b)=>a.depth-b.depth);
 
-  // Draw grid box outline (faint)
-  ctx.strokeStyle='rgba(30,58,95,0.6)'; ctx.lineWidth=1;
-  const corners3 = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],
-                    [-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
-  const edges3 = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],
-                  [0,4],[1,5],[2,6],[3,7]];
-  const cp = corners3.map(([x,y,z])=>project(x,y,z,cx,cy,scale));
-  edges3.forEach(([a,b])=>{
-    ctx.beginPath(); ctx.moveTo(cp[a].sx,cp[a].sy); ctx.lineTo(cp[b].sx,cp[b].sy); ctx.stroke();
-  });
+  // Box outline
+  ctx.strokeStyle='rgba(30,58,95,0.5)'; ctx.lineWidth=0.8;
+  const corn=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+  const edg=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+  const cp=corn.map(([x,y,z])=>project(x,y,z,cx,cy,scale));
+  edg.forEach(([a,b])=>{ ctx.beginPath(); ctx.moveTo(cp[a].sx,cp[a].sy); ctx.lineTo(cp[b].sx,cp[b].sy); ctx.stroke(); });
 
-  // Draw arrows from centre to each visible node
-  const cen = project(0,0,0,cx,cy,scale);
+  // Draw centre node first (behind everything)
+  const cen=project(0,0,0,cx,cy,scale);
+  ctx.beginPath(); ctx.arc(cen.sx,cen.sy,9,0,Math.PI*2);
+  ctx.fillStyle='#00d4ff'; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1.5; ctx.stroke();
+
+  // Arrows: shaft + proper arrowhead, no dot at tip
   projected.forEach(n=>{
-    if (n.dx===0&&n.dy===0&&n.dz===0) return;
-    if (!layerVis[String(n.dz)]) return;
-    const col = TYPE_COLOR[n.type];
-    const alpha = (n.type===3)?0.5:0.8;
-    ctx.save(); ctx.globalAlpha=alpha;
-    ctx.strokeStyle=col; ctx.lineWidth = n.type===0?2:1.2;
-    ctx.setLineDash([]);
-    ctx.beginPath(); ctx.moveTo(cen.sx,cen.sy); ctx.lineTo(n.sx,n.sy); ctx.stroke();
-    // Arrowhead
+    if(n.dx===0&&n.dy===0&&n.dz===0) return;
+    const active=inStencil(n);
+    const col=active?TYPE_COLOR[n.type]:'rgba(40,55,75,0.45)';
     const ang=Math.atan2(n.sy-cen.sy,n.sx-cen.sx);
-    const hl=7;
-    ctx.fillStyle=col;
-    ctx.beginPath();
-    ctx.moveTo(n.sx,n.sy);
-    ctx.lineTo(n.sx-hl*Math.cos(ang-0.35),n.sy-hl*Math.sin(ang-0.35));
-    ctx.lineTo(n.sx-hl*Math.cos(ang+0.35),n.sy-hl*Math.sin(ang+0.35));
-    ctx.closePath(); ctx.fill();
+    const hl=active?10:6;       // arrowhead length
+    const hw=active?0.38:0.28;  // arrowhead half-angle
+    const lw=active?1.8:0.7;
+    // Stop shaft just before the arrowhead base so it doesn't bleed through
+    const tipX=n.sx, tipY=n.sy;
+    const baseX=tipX-hl*Math.cos(ang), baseY=tipY-hl*Math.sin(ang);
+
+    ctx.save();
+    ctx.globalAlpha=active?0.85:0.2;
+
+    // Shaft from centre to arrowhead base
+    ctx.strokeStyle=col; ctx.lineWidth=lw;
+    ctx.beginPath(); ctx.moveTo(cen.sx,cen.sy); ctx.lineTo(baseX,baseY); ctx.stroke();
+
+    // Filled arrowhead
+    if(active){
+      // Hover glow ring around arrowhead tip
+      if(hovered===n.idx){
+        ctx.globalAlpha=0.25;
+        ctx.beginPath(); ctx.arc(tipX,tipY,13,0,Math.PI*2);
+        ctx.fillStyle=col; ctx.fill();
+        ctx.globalAlpha=0.85;
+      }
+      ctx.fillStyle=col;
+      ctx.beginPath();
+      ctx.moveTo(tipX,tipY);
+      ctx.lineTo(tipX-hl*Math.cos(ang-hw), tipY-hl*Math.sin(ang-hw));
+      ctx.lineTo(tipX-hl*0.4*Math.cos(ang), tipY-hl*0.4*Math.sin(ang)); // slight concave notch
+      ctx.lineTo(tipX-hl*Math.cos(ang+hw), tipY-hl*Math.sin(ang+hw));
+      ctx.closePath(); ctx.fill();
+    } else {
+      // Inactive: small simple triangle
+      ctx.fillStyle=col;
+      ctx.beginPath();
+      ctx.moveTo(tipX,tipY);
+      ctx.lineTo(tipX-hl*Math.cos(ang-hw), tipY-hl*Math.sin(ang-hw));
+      ctx.lineTo(tipX-hl*Math.cos(ang+hw), tipY-hl*Math.sin(ang+hw));
+      ctx.closePath(); ctx.fill();
+    }
     ctx.restore();
+
+
   });
 
-  // Draw nodes (depth-sorted, front-to-back so front nodes appear on top)
-  projected.forEach(n=>{
-    if (!layerVis[String(n.dz)]) return;
-    const isCenter = n.dx===0&&n.dy===0&&n.dz===0;
-    const isHov = hovered===n.idx;
-    const r = isCenter ? 10 : (n.type===1?7:n.type===2?6:5);
-    const col = TYPE_COLOR[n.type];
-
-    // Glow halo for hovered
-    if (isHov) {
-      ctx.save(); ctx.globalAlpha=0.35;
-      ctx.beginPath(); ctx.arc(n.sx,n.sy,r+8,0,Math.PI*2);
-      ctx.fillStyle=col; ctx.fill(); ctx.restore();
-    }
-    ctx.beginPath(); ctx.arc(n.sx,n.sy,r,0,Math.PI*2);
-    ctx.fillStyle=col; ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.stroke();
-
-    // z-layer label for centre of each layer
-    if (n.dx===0&&n.dy===0) {
-      ctx.fillStyle='rgba(255,255,255,0.45)';
-      ctx.font='9px Space Mono,monospace';
-      ctx.textAlign='center'; ctx.textBaseline='bottom';
-      ctx.fillText('z='+n.dz, n.sx, n.sy-r-3);
-    }
-  });
-
-  // Axis labels
-  const axLen=1.35;
-  [['x',axLen,0,0,'#f97316'],['y',0,axLen,0,'#4ade80'],['z',0,0,axLen,'#00d4ff']].forEach(([lbl,ax,ay,az,col])=>{
+  // Axis arrows
+  const axLen=1.38;
+  [['x',axLen,0,0,'#f97316'],['y',0,axLen,0,'#4ade80'],['z',0,0,axLen,'#00d4ff']].forEach(([lbl,ax,ay,az,c])=>{
     const p=project(ax,ay,az,cx,cy,scale);
-    ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.globalAlpha=0.7;
+    ctx.strokeStyle=c; ctx.lineWidth=1.5; ctx.globalAlpha=0.65;
     ctx.beginPath(); ctx.moveTo(cen.sx,cen.sy); ctx.lineTo(p.sx,p.sy); ctx.stroke();
-    ctx.globalAlpha=1; ctx.fillStyle=col; ctx.font='bold 11px Space Mono,monospace';
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(lbl,p.sx,p.sy);
+    ctx.globalAlpha=1; ctx.fillStyle=c; ctx.font='bold 11px Space Mono,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(lbl,p.sx,p.sy);
   });
   ctx.globalAlpha=1;
 }
 
-// Hit test for hover
 function hitTest(mx,my) {
-  const canvas=document.getElementById('d3q27Canvas');
-  if(!canvas) return null;
-  const W=canvas.width, H=canvas.height, cx=W/2, cy=H/2, scale=W*0.18;
+  const canvas=document.getElementById('d3q27Canvas'); if(!canvas) return null;
+  const W2=canvas.width,H=canvas.height,cx=W2/2,cy=H/2,scale=W2*0.18;
   const rect=canvas.getBoundingClientRect();
-  const scaleX=W/rect.width, scaleY=H/rect.height;
-  const px=(mx-rect.left)*scaleX, py=(my-rect.top)*scaleY;
-  let best=null, bestD=Infinity;
+  const px=(mx-rect.left)*(W2/rect.width), py=(my-rect.top)*(H/rect.height);
+  let best=null,bestD=Infinity;
   NODES.forEach((n,i)=>{
-    if(!layerVis[String(n.dz)]) return;
+    if(!inStencil(n)) return;
     const p=project(n.dx,n.dy,n.dz,cx,cy,scale);
     const d=Math.hypot(p.sx-px,p.sy-py);
-    const r=n.dx===0&&n.dy===0&&n.dz===0?10:(n.type===1?7:n.type===2?6:5);
-    if(d<r+4&&d<bestD){bestD=d;best=i;}
+    // Hit zone at arrowhead tip (14px) or centre dot (12px)
+    const r=(n.dx===0&&n.dy===0&&n.dz===0)?12:14;
+    if(d<r&&d<bestD){bestD=d;best=i;}
   });
   return best;
+}
+
+function updateDesc() {
+  const el=document.getElementById('d3q27StencilDesc'); if(!el) return;
+  const s=STENCILS[activeStencil];
+  const types=s.types;
+  const counts={0:0,1:0,2:0,3:0};
+  NODES.forEach(n=>{ if(types.includes(n.type)) counts[n.type]++; });
+  const total=Object.values(counts).reduce((a,b)=>a+b,0);
+  const parts=types.map(t=>`<span style="color:${TYPE_COLOR[t]}">${counts[t]} ${TYPE_LABEL[t]}${counts[t]>1?'s':''}</span>`).join(' + ');
+  el.innerHTML=`<strong style="color:var(--accent)">${s.label}</strong>: ${parts} = <strong style="color:var(--text)">${total} velocities</strong><br><span style="color:var(--text-dim);font-size:9.5px;">${s.desc.split('\n')[1]||''}</span>`;
 }
 
 function updateInfo(idx) {
@@ -4561,77 +4654,588 @@ function updateInfo(idx) {
     return;
   }
   const n=NODES[idx];
-  const wFrac = ['8/27','2/27','1/54','1/216'][n.type];
-  const wDec  = n.w.toFixed(5);
-  const speed = Math.sqrt(n.dx*n.dx+n.dy*n.dy+n.dz*n.dz).toFixed(0);
+  const s=STENCILS[activeStencil];
+  const active=inStencil(n);
+  const speed=Math.sqrt(n.dx*n.dx+n.dy*n.dy+n.dz*n.dz).toFixed(2);
   el.innerHTML=`
     <div style="color:var(--accent);font-size:10px;letter-spacing:1px;margin-bottom:8px;">NODE INFO</div>
     <div>e = (${n.dx}, ${n.dy}, ${n.dz})</div>
     <div>type: <span style="color:${TYPE_COLOR[n.type]}">${TYPE_LABEL[n.type]}</span></div>
     <div>|e| = ${speed}</div>
-    <div>w = ${wFrac}</div>
-    <div style="color:var(--text-dim);font-size:10px;">&nbsp;&nbsp;≈ ${wDec}</div>
+    <div style="margin-top:8px;font-size:10px;color:var(--text-dim);">In D3Q15: <span style="color:${STENCILS[15].types.includes(n.type)?'#4ade80':'#ff4466'}">${STENCILS[15].types.includes(n.type)?'✓':'✗'}</span></div>
+    <div style="font-size:10px;color:var(--text-dim);">In D3Q19: <span style="color:${STENCILS[19].types.includes(n.type)?'#4ade80':'#ff4466'}">${STENCILS[19].types.includes(n.type)?'✓':'✗'}</span></div>
+    <div style="font-size:10px;color:var(--text-dim);">In D3Q27: <span style="color:#4ade80">✓</span></div>
   `;
 }
 
-// Controls
-window.d3q27ToggleLayer = function(z, btn) {
-  const key=String(z);
-  layerVis[key]=!layerVis[key];
-  btn.classList.toggle('active-layer',layerVis[key]);
-  drawD3Q27();
-};
-window.d3q27Reset = function() {
-  rotX=0.42; rotY=-0.55;
-  layerVis={'-1':true,'0':true,'1':true};
-  document.querySelectorAll('.d3q27-layer-btn').forEach(b=>b.classList.add('active-layer'));
-  hovered=null; updateInfo(null); drawD3Q27();
+// ── Public controls ──────────────────────────────────────────
+window.d3q27SetStencil = function(q) {
+  activeStencil=q;
+  [15,19,27].forEach(n=>{
+    const b=document.getElementById('d3q27Btn'+n);
+    if(b) b.classList.toggle('active-layer',n===q);
+  });
+  updateDesc(); updateInfo(hovered); drawD3Q27();
 };
 
-// Mouse drag
+
+window.d3q27Reset = function() {
+  rotX=0.42; rotY=-0.55;
+  activeStencil=27;
+  [15,19,27].forEach(n=>{const b=document.getElementById('d3q27Btn'+n);if(b)b.classList.toggle('active-layer',n===27);});
+  hovered=null; updateInfo(null); updateDesc(); drawD3Q27();
+};
+
+// ── Mouse / touch ────────────────────────────────────────────
 window.d3q27MouseDown = function(e){ dragging=true; lastMX=e.clientX; lastMY=e.clientY; e.preventDefault(); };
 window.d3q27MouseUp   = function(){ dragging=false; };
 window.d3q27MouseMove = function(e){
   const canvas=document.getElementById('d3q27Canvas');
   if(dragging){
-    rotY+=(e.clientX-lastMX)*0.012;
-    rotX+=(e.clientY-lastMY)*0.012;
+    rotY+=(e.clientX-lastMX)*0.012; rotX+=(e.clientY-lastMY)*0.012;
     rotX=Math.max(-Math.PI/2+0.05,Math.min(Math.PI/2-0.05,rotX));
-    lastMX=e.clientX; lastMY=e.clientY;
-    drawD3Q27();
+    lastMX=e.clientX; lastMY=e.clientY; drawD3Q27();
   } else {
     const h=hitTest(e.clientX,e.clientY);
     if(h!==hovered){ hovered=h; updateInfo(h); drawD3Q27(); }
     if(canvas) canvas.style.cursor=h!==null?'pointer':'grab';
   }
 };
+window.d3q27TouchStart=function(e){const t=e.touches[0];lastMX=t.clientX;lastMY=t.clientY;dragging=true;e.preventDefault();};
+window.d3q27TouchMove =function(e){if(!dragging)return;const t=e.touches[0];d3q27MouseMove({clientX:t.clientX,clientY:t.clientY});e.preventDefault();};
 
-// Touch
-window.d3q27TouchStart = function(e){ const t=e.touches[0]; lastMX=t.clientX; lastMY=t.clientY; dragging=true; e.preventDefault(); };
-window.d3q27TouchMove  = function(e){ if(!dragging) return; const t=e.touches[0]; const fe={clientX:t.clientX,clientY:t.clientY}; d3q27MouseMove(fe); e.preventDefault(); };
-
-// Auto-slow rotation when idle
+// ── Auto-rotate ──────────────────────────────────────────────
 let d3q27RAF=null;
-function d3q27AutoRotate(ts){
-  if(!dragging){ rotY+=0.003; drawD3Q27(); }
-  d3q27RAF=requestAnimationFrame(d3q27AutoRotate);
-}
+function d3q27AutoRotate(){ if(!dragging){ rotY+=0.003; drawD3Q27(); } d3q27RAF=requestAnimationFrame(d3q27AutoRotate); }
 
-// Init when section 1 becomes visible (goSection already calls renderMathInElement there)
-const _origGoSection = window.goSection;
-// Hook into section activation — start/stop auto-rotate
-document.addEventListener('DOMContentLoaded', ()=>{
-  // Start rendering once the canvas exists
+document.addEventListener('DOMContentLoaded',()=>{
   const wait=setInterval(()=>{
     if(document.getElementById('d3q27Canvas')){
-      clearInterval(wait);
-      drawD3Q27();
-      d3q27RAF=requestAnimationFrame(d3q27AutoRotate);
+      clearInterval(wait); updateDesc(); drawD3Q27(); d3q27RAF=requestAnimationFrame(d3q27AutoRotate);
     }
   },200);
 });
 
 })(); // end D3Q27 IIFE
+
+
+// ═══════════════════════════════════════════════════════════════════
+// GAUSS–HERMITE QUADRATURE ANIMATION (sec1b)
+// Single global time hqGT ∈ [0, 4] drives everything.
+// Each "phase" is a time window [k, k+1].
+// Drawing functions keep all previous content visible at full opacity —
+// no wipe, no fade-out between steps.
+// ═══════════════════════════════════════════════════════════════════
+let hqRunning  = false;
+let hqGT       = 0;      // global time 0 → 4  (phase k = floor(hqGT))
+let hqSpeed    = 1.0;
+let hqLastTs   = null;
+let hqRAF      = null;
+let hqPauseT   = 0;      // countdown for 5-second hold after D3Q27 completes
+const HQ_RESTART_PAUSE = 5;
+
+// Phase durations (seconds)
+const HQ_DUR = [5, 4, 5, 6];
+// Total normalised time units
+// hqGT maps linearly within each phase: phase k runs from k→k+1 in "phase units"
+// but in real seconds it's HQ_DUR[k]. We handle this via per-phase dt scaling.
+
+const HQ_PHASES = [
+  {
+    title: 'PHASE 1 — He₃(ξ) ROOTS',
+    body:  'The 3-point Gauss–Hermite rule uses roots of He₃(ξ) = ξ³ − 3ξ. The three roots −√3, 0, +√3 become the D1Q3 quadrature nodes after rescaling.',
+    math:  'He_3(\\xi)=\\xi^3-3\\xi,\\quad \\xi\\in\\{-\\sqrt{3},\\,0,\\,+\\sqrt{3}\\}'
+  },
+  {
+    title: 'PHASE 2 — D1Q3',
+    body:  'The roots ±√3 are divided by √3 to give lattice units {−1, 0, +1}. The three rescaled nodes become velocity arrows: the D1Q3 stencil.',
+    math:  '\\frac{\\pm\\sqrt{3}}{\\sqrt{3}}=\\pm 1 \\quad\\Rightarrow\\quad e_x\\in\\{-1,\\,0,\\,+1\\}'
+  },
+  {
+    title: 'PHASE 3 — ⊗ = D2Q9',
+    body:  'A second D1Q3 along y unfolds from the x-axis. Each x-arrow clones into a column, giving 3×3 = 9 velocities: D2Q9.',
+    math:  'D1Q3\\otimes D1Q3=D2Q9'
+  },
+  {
+    title: 'PHASE 4 — ⊗ = D3Q27',
+    body:  'A third D1Q3 along z extrudes out of the xy-plane. Each D2Q9 arrow fans into 3 z-copies, giving 9×3 = 27 velocities: D3Q27.',
+    math:  'D2Q9\\otimes D1Q3=D3Q27'
+  }
+];
+
+// ── Easing ─────────────────────────────────────────────────────────
+function easeInOut(t) { return 0.5 - 0.5*Math.cos(t*Math.PI); }
+function easeOut(t)   { return 1 - Math.pow(1-t, 2); }
+function easeIn(t)    { return t*t; }
+function clamp01(t)   { return Math.max(0, Math.min(1, t)); }
+// Smooth appear/disappear of a value using eased window [t0, t1]
+function smoothStep(t, t0, t1) { return easeInOut(clamp01((t-t0)/(t1-t0))); }
+
+// ── Arrow helper ───────────────────────────────────────────────────
+function hqArrowFull(ctx, ox, oy, tx, ty, col, alpha, lw) {
+  if (alpha <= 0) return;
+  const ang = Math.atan2(ty-oy, tx-ox);
+  const len = Math.hypot(tx-ox, ty-oy);
+  if (len < 4) return;
+  const hl = Math.min(11, len*0.32), hw = 0.38;
+  ctx.save(); ctx.globalAlpha = alpha;
+  ctx.strokeStyle = col; ctx.lineWidth = lw ?? 2;
+  ctx.beginPath(); ctx.moveTo(ox, oy);
+  ctx.lineTo(tx - hl*Math.cos(ang), ty - hl*Math.sin(ang)); ctx.stroke();
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(tx - hl*Math.cos(ang-hw), ty - hl*Math.sin(ang-hw));
+  ctx.lineTo(tx - hl*0.28*Math.cos(ang), ty - hl*0.28*Math.sin(ang));
+  ctx.lineTo(tx - hl*Math.cos(ang+hw), ty - hl*Math.sin(ang+hw));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// Thin axis arrow
+function hqAxisLine(ctx, ox, oy, tx, ty, col, alpha) {
+  if (alpha <= 0) return;
+  const ang = Math.atan2(ty-oy, tx-ox), hl=8, hw=0.3;
+  ctx.save(); ctx.globalAlpha = alpha;
+  ctx.strokeStyle = col; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(ox,oy);
+  ctx.lineTo(tx-hl*Math.cos(ang), ty-hl*Math.sin(ang)); ctx.stroke();
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.moveTo(tx,ty);
+  ctx.lineTo(tx-hl*Math.cos(ang-hw), ty-hl*Math.sin(ang-hw));
+  ctx.lineTo(tx-hl*Math.cos(ang+hw), ty-hl*Math.sin(ang+hw));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function hqLbl(ctx, txt, x, y, col, alpha, sz, align, base) {
+  if (alpha <= 0) return;
+  ctx.save(); ctx.globalAlpha = alpha;
+  ctx.fillStyle=col; ctx.font=(sz??11)+'px Space Mono,monospace';
+  ctx.textAlign=align??'center'; ctx.textBaseline=base??'middle';
+  ctx.fillText(txt,x,y); ctx.restore();
+}
+
+function hqRestDot(ctx, x, y, col, alpha) {
+  if (alpha <= 0) return;
+  ctx.save(); ctx.globalAlpha=alpha*0.22;
+  ctx.beginPath(); ctx.arc(x,y,13,0,Math.PI*2);
+  ctx.fillStyle=col; ctx.fill(); ctx.restore();
+  ctx.save(); ctx.globalAlpha=alpha;
+  ctx.beginPath(); ctx.arc(x,y,7,0,Math.PI*2);
+  ctx.fillStyle=col; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.restore();
+}
+
+const HQC_REST='#00d4ff', HQC_FACE='#4ade80', HQC_EDGE='#f97316', HQC_CORN='#a78bfa';
+function hqTypeColor(n) {
+  return n===0?HQC_REST:(n===1?HQC_FACE:(n===2?HQC_EDGE:HQC_CORN));
+}
+
+// Shared layout — identical across all phases so content aligns
+function hqLay(W,H) {
+  return { ox:W*0.5, oy:H*0.58, sp:Math.min(W,H)*0.175 };
+}
+
+// 3D isometric projection
+const HQ_ROT_X=0.42, HQ_ROT_Y=-0.45;
+function hqProject(x,y,z,cx,cy,scale) {
+  const cosY=Math.cos(HQ_ROT_Y), sinY=Math.sin(HQ_ROT_Y);
+  const cosX=Math.cos(HQ_ROT_X), sinX=Math.sin(HQ_ROT_X);
+  const rx=x*cosY-z*sinY, ry2=z*cosY+x*sinY;
+  const ry=y*cosX-ry2*sinX;
+  return {sx:cx+rx*scale, sy:cy-ry*scale};
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MASTER DRAW — called every frame with global time gt ∈ [0,4]
+// Each layer checks gt and draws what it should contribute.
+// Nothing is ever erased — layers accumulate.
+// ══════════════════════════════════════════════════════════════════
+function hqDraw(ctx, W, H, gt) {
+  const {ox, oy, sp} = hqLay(W, H);
+
+  // Local phase progress helpers:
+  // p0 = progress within phase 0 (0→1 as gt goes 0→1)
+  const p0 = clamp01(gt);
+  const p1 = clamp01(gt - 1);
+  const p2 = clamp01(gt - 2);
+  const p3 = clamp01(gt - 3);
+
+  // ── LAYER 0: He₃ polynomial curve ─────────────────────────────
+  // Fades out gently once D1Q3 (phase 1) is established (gt > 1.3)
+  // so it doesn't clutter the later 2D/3D views.
+  const scx=sp*1.05, scy=sp*0.88;
+  const curveAlpha = p0 * (1 - smoothStep(gt, 1.2, 1.9)) * 0.85;
+  const axisAlpha0 = p0 * (1 - smoothStep(gt, 1.2, 1.9)) * 0.45;
+
+  if (curveAlpha > 0.01) {
+    // Ghost axes for polynomial plot
+    hqAxisLine(ctx, ox-scx*1.5, oy, ox+scx*1.55, oy, '#aaa', axisAlpha0);
+    hqAxisLine(ctx, ox, oy+scy*1.5, ox, oy-scy*1.75, '#aaa', axisAlpha0);
+    hqLbl(ctx,'ξ', ox+scx*1.6, oy, '#aaa', axisAlpha0, 12,'left','middle');
+    hqLbl(ctx,'He₃(ξ)', ox, oy-scy*1.8, '#aaa', axisAlpha0, 11,'center','bottom');
+
+    // Curve draws itself
+    const cp = easeInOut(clamp01(p0*1.9));
+    ctx.save(); ctx.globalAlpha=curveAlpha;
+    ctx.strokeStyle='#00d4ff'; ctx.lineWidth=2.5;
+    ctx.shadowColor='#00d4ff'; ctx.shadowBlur=6;
+    ctx.beginPath(); let started=false;
+    for (let i=0;i<=180;i++) {
+      const frac=i/180; if(frac>cp) break;
+      const xi=-1.78+frac*3.56, yi=xi*xi*xi-3*xi;
+      const px=ox+xi*scx*0.76, py=oy-yi*scy*0.4;
+      if(!started){ctx.moveTo(px,py);started=true;}else ctx.lineTo(px,py);
+    }
+    ctx.stroke(); ctx.restore();
+    hqLbl(ctx,'He₃(ξ) = ξ³ − 3ξ', ox, oy-scy*1.52, 'rgba(0,212,255,0.75)', curveAlpha, 12,'center','bottom');
+  }
+
+  // ── LAYER 0b: Roots appear as dots on polynomial axis ──────────
+  // Timeline within gt:
+  //   0.42–0.85  : dots drop onto the polynomial x-axis at ±√3 positions
+  //   0.85–1.10  : "÷ √3" annotation appears; dots slide inward to ±1 (=±sp)
+  //   1.10–1.35  : label morphs ±√3 → ±1; dot converts to arrow tip
+  //   1.35+      : dots fully gone, arrows take over
+  const roots=[-Math.sqrt(3),0,Math.sqrt(3)];
+  const rcols=[HQC_FACE,HQC_REST,HQC_FACE];
+
+  // Positions: raw polynomial x-pos and target lattice x-pos
+  const rootRawX  = roots.map(r => ox + r*scx*0.76);   // ±√3 on screen
+  const rootLatX  = [ox-sp, ox, ox+sp];                  // ±1 lattice pos
+
+  // slide progress: 0 at root pos, 1 at lattice pos
+  const slide = easeInOut(smoothStep(gt, 0.85, 1.12));
+
+  roots.forEach((r,i)=>{
+    const appear = easeOut(clamp01((p0-0.42-i*0.1)*4.5));
+    if(appear<=0.01) return;
+
+    // Interpolated dot x-position
+    const dotX = rootRawX[i] + (rootLatX[i]-rootRawX[i])*slide;
+
+    // Dot fades out once the arrow fully grows (gt 1.3→1.5)
+    const dotAlpha = appear * (1 - smoothStep(gt, 1.3, 1.5));
+
+    if(dotAlpha>0.01) {
+      // Dashed drop-line (fades as curve fades)
+      const lineA = dotAlpha * (1-slide) * 0.5;
+      if(lineA>0.01) {
+        ctx.save(); ctx.globalAlpha=lineA; ctx.strokeStyle=rcols[i]; ctx.lineWidth=1;
+        ctx.setLineDash([4,4]);
+        ctx.beginPath(); ctx.moveTo(dotX,oy-2); ctx.lineTo(dotX,oy+16); ctx.stroke();
+        ctx.restore();
+      }
+      hqRestDot(ctx, dotX, oy, rcols[i], dotAlpha);
+
+      // Label: shows "±√3" before slide, "±1" after, with a "÷√3" hint in between
+      if(i!==1) {
+        const sign = i===0 ? '−' : '+';
+        // Pre-slide: show ±√3
+        const preA  = dotAlpha * (1 - smoothStep(gt, 0.83, 1.0));
+        if(preA>0.01) hqLbl(ctx, sign+'√3', dotX, oy+22, rcols[i], preA, 10,'center','top');
+        // Post-slide: show ±1
+        const postA = dotAlpha * smoothStep(gt, 1.08, 1.28);
+        if(postA>0.01) hqLbl(ctx, sign+'1', rootLatX[i], oy+22, rcols[i], postA, 10,'center','top');
+      } else {
+        hqLbl(ctx,'0', dotX, oy+22, rcols[i], dotAlpha, 10,'center','top');
+      }
+    }
+  });
+
+  // ── "÷ √3" rescaling annotation ──────────────────────────────────
+  // Appears during the slide window, centred above the axis
+  {
+    const divA = smoothStep(gt, 0.84, 0.97) * (1-smoothStep(gt, 1.18, 1.38));
+    if(divA>0.01) {
+      // Box background
+      ctx.save(); ctx.globalAlpha=divA*0.12;
+      ctx.fillStyle='#00d4ff';
+      ctx.beginPath(); ctx.roundRect?ctx.roundRect(ox-68,oy-sp*0.68,136,26,4):ctx.rect(ox-68,oy-sp*0.68,136,26);
+      ctx.fill(); ctx.restore();
+      // Main text
+      hqLbl(ctx, 'rescale:  ÷ √3', ox, oy-sp*0.52, '#00d4ff', divA, 11,'center','middle');
+      // Small arrows showing motion direction
+      [-1,1].forEach(dir=>{
+        const fromX=ox+dir*Math.sqrt(3)*scx*0.76, toX=ox+dir*sp;
+        ctx.save(); ctx.globalAlpha=divA*0.5; ctx.strokeStyle=dir<0?HQC_FACE:HQC_FACE; ctx.lineWidth=1;
+        ctx.setLineDash([3,4]);
+        ctx.beginPath(); ctx.moveTo(fromX,oy-20); ctx.lineTo(toX,oy-20); ctx.stroke();
+        ctx.restore();
+        // Small arrowhead on the dashed line
+        const ang=dir<0?Math.PI:0, hl=5, hw=0.4;
+        ctx.save(); ctx.globalAlpha=divA*0.55; ctx.fillStyle=HQC_FACE;
+        ctx.beginPath();
+        ctx.moveTo(toX,oy-20);
+        ctx.lineTo(toX-hl*Math.cos(ang-hw),oy-20-hl*Math.sin(ang-hw));
+        ctx.lineTo(toX-hl*Math.cos(ang+hw),oy-20-hl*Math.sin(ang+hw));
+        ctx.closePath(); ctx.fill(); ctx.restore();
+      });
+    }
+  }
+
+  // ── LAYER 1: x-axis (permanent from phase 1 onward) ───────────
+  const xAxisAlpha = smoothStep(gt, 0.9, 1.3) * 0.6;
+  const xAxisFinal = xAxisAlpha * (1 - smoothStep(gt, 3.0, 3.4));
+  hqAxisLine(ctx, ox-sp*1.6, oy, ox+sp*1.65, oy, '#f97316', xAxisFinal);
+  hqLbl(ctx,'eₓ', ox+sp*1.7, oy, '#f97316', xAxisFinal, 12,'left','middle');
+
+  // ── LAYER 1b: D1Q3 — rest dot + ±x arrows ─────────────────────
+  // Arrows grow after the dots have slid into place (gt > 1.3)
+  const d1Fade = 1 - smoothStep(gt, 3.0, 3.4);
+  const d1Base = p1;
+  if (d1Base > 0 && d1Fade > 0) {
+    // rest dot
+    hqRestDot(ctx, ox, oy, HQC_REST, easeOut(clamp01(p1*5)) * d1Fade);
+
+    // ±1 arrows — only start growing once slide is nearly done (gt > 1.28)
+    [[-1,'−1'],[1,'+1']].forEach(([dx,lbl],i)=>{
+      const startGT = 1.28 + i*0.08;
+      const a = easeOut(clamp01((gt - startGT)*3.5)) * d1Fade;
+      if(a<=0) return;
+      hqArrowFull(ctx, ox,oy, ox+dx*sp,oy, HQC_FACE, a, 2.5);
+    });
+  }
+
+  // ── LAYER 1 title: D1Q3 label ─────────────────────────────────
+  const d1TitleA = easeOut(clamp01(p1*4)) * (1 - smoothStep(gt, 2.0, 2.4));
+  hqLbl(ctx,'D1Q3', ox, oy-sp*1.55, '#00d4ff', d1TitleA, 16,'center','bottom');
+
+  // ── LAYER 2: y-axis unfolds ────────────────────────────────────
+  const yU = easeInOut(clamp01(p2*3));
+  const yAxisFade = 1 - smoothStep(gt, 3.0, 3.4);
+  if(yU>0.01 && yAxisFade>0) {
+    hqAxisLine(ctx,ox,oy, ox,oy-sp*1.6*yU, '#4ade80', yU*0.55*yAxisFade);
+    hqLbl(ctx,'eᵧ', ox, oy-sp*1.65*yU, '#4ade80', yU*0.55*yAxisFade, 12,'center','bottom');
+    hqAxisLine(ctx,ox,oy, ox,oy+sp*1.6*yU, '#4ade80', yU*0.3*yAxisFade);
+  }
+
+  // ── LAYER 2b: D2Q9 — new dy≠0 arrows fan out ──────────────────
+  const d2Fade = 1 - smoothStep(gt, 3.0, 3.4);
+  if(p2>0 && d2Fade>0) {
+    const D1=[-1,0,1];
+    D1.forEach((dy)=>{
+      if(dy===0) return; // dy=0 row already drawn in layer 1
+      D1.forEach((dx,i)=>{
+        const rowDelay=0.18+Math.abs(dy)*0.05;
+        const nodeDelay=rowDelay+i*0.045;
+        const rawA=easeOut(clamp01((p2-nodeDelay)*3));
+        const a=rawA*yU*d2Fade;
+        if(a<=0) return;
+        const n=Math.abs(dx)+Math.abs(dy);
+        const col=hqTypeColor(n);
+        // Tip grows along y proportional to yU and rawA
+        const animTy=oy-(dy*sp*clamp01(rawA*1.6)*yU);
+        hqArrowFull(ctx,ox,oy, ox+dx*sp,animTy, col,a*0.9,2);
+      });
+    });
+    // ⊗ symbol
+    const symA=p2>0.05&&p2<0.5?Math.sin(Math.PI*clamp01((p2-0.05)/0.45))*0.55*d2Fade:0;
+    if(symA>0) hqLbl(ctx,'⊗', ox+sp*2.1, oy, '#00d4ff', symA, 30,'center','middle');
+  }
+
+  // D2Q9 title + count (fades out before phase 3 title appears)
+  const d2TitleA = easeOut(clamp01(p2*4)) * (1 - smoothStep(gt, 2.9, 3.3));
+  hqLbl(ctx,'D1Q3 ⊗ D1Q3 = D2Q9', ox, oy-sp*1.78, '#00d4ff', d2TitleA, 13,'center','bottom');
+  const d2CountA = clamp01(p2-0.55)*5 * (1-smoothStep(gt,2.9,3.3));
+  hqLbl(ctx,'3 × 3 = 9 velocities', ox, oy+sp*1.15, 'rgba(255,255,255,0.4)', d2CountA, 10,'center','top');
+
+  // ── LAYER 3: isometric projection — z-axis extrudes, D3Q27 ────
+  if(p3>0) {
+    const cx=W*0.5, cy=H*0.55;
+    const scale=Math.min(W,H)*0.162;
+    const zU=easeInOut(clamp01(p3*3));
+    const cen=hqProject(0,0,0,cx,cy,scale);
+
+    // Title
+    const d3TitleA=easeOut(clamp01(p3*4));
+    hqLbl(ctx,'D2Q9 ⊗ D1Q3 = D3Q27', cx, cy-scale*1.72, '#00d4ff', d3TitleA, 13,'center','bottom');
+
+    // Faint bounding box
+    ctx.save(); ctx.globalAlpha=clamp01(p3*4)*0.18;
+    ctx.strokeStyle='rgba(60,100,150,1)'; ctx.lineWidth=0.8;
+    const corn=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+    const edgs=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+    const cps=corn.map(([x,y,z])=>hqProject(x,y,z,cx,cy,scale));
+    edgs.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(cps[a].sx,cps[a].sy);ctx.lineTo(cps[b].sx,cps[b].sy);ctx.stroke();});
+    ctx.restore();
+
+    // Axis labels (isometric)
+    ctx.save(); ctx.globalAlpha=clamp01(p3*3)*0.6;
+    [['eₓ',1.5,0,0,'#f97316'],['eᵧ',0,1.5,0,'#4ade80'],['e_z',0,0,1.5,'#00d4ff']].forEach(([lbl,ax,ay,az,c])=>{
+      const pp=hqProject(ax,ay,az*zU,cx,cy,scale);
+      ctx.strokeStyle=c; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(cen.sx,cen.sy); ctx.lineTo(pp.sx,pp.sy); ctx.stroke();
+      ctx.fillStyle=c; ctx.font='11px Space Mono,monospace';
+      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(lbl,pp.sx,pp.sy);
+    });
+    ctx.restore();
+
+    // All 27 arrows depth-sorted
+    const D1=[-1,0,1];
+    const all=[];
+    D1.forEach(dz=>D1.forEach(dy=>D1.forEach(dx=>{
+      const n=Math.abs(dx)+Math.abs(dy)+Math.abs(dz);
+      const {sx:sdx,sy:sdy}=hqProject(dx,dy,dz,cx,cy,scale);
+      all.push({dx,dy,dz,n,depth:sdx*0.1-sdy});
+    })));
+    all.sort((a,b)=>a.depth-b.depth);
+
+    all.forEach(v=>{
+      const layerD=v.dz===0?0:(0.1+Math.abs(v.dz)*0.07);
+      const nodeD=layerD+((v.dx+1)*3+(v.dy+1))/27*0.28;
+      const rawA=easeOut(clamp01((p3-nodeD)*3.5));
+      const a=v.dz===0?rawA:rawA*zU;
+      if(a<=0) return;
+      const col=hqTypeColor(v.n);
+      if(v.n===0) {
+        hqRestDot(ctx,cen.sx,cen.sy,col,a);
+      } else {
+        const tipP=v.dz===0
+          ? hqProject(v.dx,v.dy,0,cx,cy,scale)
+          : hqProject(v.dx,v.dy,v.dz*clamp01(rawA*1.8)*zU,cx,cy,scale);
+        hqArrowFull(ctx,cen.sx,cen.sy,tipP.sx,tipP.sy,col,a*0.88,1.6);
+      }
+    });
+
+    // ⊗ symbol
+    const symA=p3>0.05&&p3<0.48?Math.sin(Math.PI*clamp01((p3-0.05)/0.43))*0.5:0;
+    if(symA>0){
+      const zp=hqProject(0,0,1.85*zU,cx,cy,scale);
+      hqLbl(ctx,'⊗',zp.sx+16,zp.sy,'#00d4ff',symA,28,'center','middle');
+    }
+    const d3CountA=clamp01((p3-0.55)*5);
+    hqLbl(ctx,'9 × 3 = 27 velocities', cx, cy+scale*1.5, 'rgba(255,255,255,0.4)', d3CountA, 10,'center','top');
+  }
+
+  // ── Phase progress dots ────────────────────────────────────────
+  const curPhase = Math.min(3, Math.floor(gt));
+  ctx.save();
+  for(let k=0;k<4;k++){
+    const active=k===curPhase;
+    const done=k<curPhase;
+    ctx.beginPath(); ctx.arc(W/2-30+k*20, H-10, active?4:2.5, 0, Math.PI*2);
+    ctx.fillStyle=active?'#00d4ff':(done?'rgba(0,212,255,0.5)':'rgba(0,212,255,0.2)');
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ── Render (called every frame) ────────────────────────────────────
+function hqRender(dt) {
+  const canvas=document.getElementById('hqCanvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  ctx.fillStyle='#070b12'; ctx.fillRect(0,0,W,H);
+
+  if(hqPauseT<=0) {
+    // Advance global time, scaled by per-phase duration
+    const phase=Math.min(3,Math.floor(hqGT));
+    hqGT += dt * hqSpeed / HQ_DUR[phase];
+    if(hqGT>4) hqGT=4;
+  }
+
+  hqDraw(ctx, W, H, hqGT);
+
+  // Countdown text during pause
+  if(hqPauseT>0) {
+    ctx.save();
+    ctx.fillStyle='rgba(0,212,255,0.22)';
+    ctx.font='9px Space Mono,monospace';
+    ctx.textAlign='right'; ctx.textBaseline='bottom';
+    ctx.fillText('restarting in '+Math.ceil(hqPauseT)+'s…', W-10, H-6);
+    ctx.restore();
+  }
+}
+
+// ── Update sidebar UI ──────────────────────────────────────────────
+function hqUpdateUI() {
+  const phase = Math.min(3, Math.floor(hqGT));
+  const ph = HQ_PHASES[phase];
+  const titleEl=document.getElementById('hqInfoTitle');
+  const bodyEl=document.getElementById('hqInfoBody');
+  const mathEl=document.getElementById('hqInfoMath');
+  if(titleEl) titleEl.textContent=ph.title;
+  if(bodyEl)  bodyEl.textContent=ph.body;
+  if(mathEl) {
+    if(typeof katex!=='undefined'){
+      try{katex.render(ph.math,mathEl,{throwOnError:false,displayMode:true});}
+      catch(e){mathEl.textContent=ph.math;}
+    } else mathEl.textContent=ph.math;
+  }
+  for(let k=0;k<4;k++){
+    const btn=document.getElementById('hqBtn'+k);
+    if(btn) btn.classList.toggle('active-phase',k===phase);
+    const track=document.getElementById('hqT'+k);
+    if(track) track.classList.toggle('active-track',k===phase);
+  }
+}
+
+// ── Loop ───────────────────────────────────────────────────────────
+function hqLoop(ts) {
+  if(!hqRunning){hqRAF=null;return;}
+  const dt=hqLastTs!==null?Math.min((ts-hqLastTs)/1000,0.1):0;
+  hqLastTs=ts;
+
+  if(hqPauseT>0){
+    hqPauseT-=dt*hqSpeed;
+    hqRender(0);
+    if(hqPauseT<=0){hqPauseT=0;hqGT=0;hqUpdateUI();}
+  } else {
+    hqRender(dt);
+    const prevPhase=Math.min(3,Math.floor(Math.max(0,hqGT-0.001)));
+    const curPhase=Math.min(3,Math.floor(hqGT));
+    if(curPhase!==prevPhase) hqUpdateUI();
+    if(hqGT>=4){ hqPauseT=HQ_RESTART_PAUSE; }
+  }
+  hqRAF=requestAnimationFrame(hqLoop);
+}
+
+function hqStart(){
+  if(hqRAF) return;
+  hqLastTs=null;
+  hqRAF=requestAnimationFrame(hqLoop);
+}
+
+// ── Public controls ────────────────────────────────────────────────
+function hqToggle(){
+  hqRunning=!hqRunning;
+  const btn=document.getElementById('hqPauseBtn');
+  if(btn) btn.textContent=hqRunning?'■ PAUSE':'▶ PLAY';
+  if(hqRunning) hqStart();
+}
+
+function hqGoPhase(k){
+  hqGT=k; hqPauseT=0;
+  hqUpdateUI();
+  hqRunning=false;
+  const btn=document.getElementById('hqPauseBtn');
+  if(btn) btn.textContent='▶ PLAY';
+  const canvas=document.getElementById('hqCanvas');
+  if(canvas){
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#070b12';ctx.fillRect(0,0,canvas.width,canvas.height);
+    hqDraw(ctx,canvas.width,canvas.height,hqGT);
+  }
+}
+
+function hqReset(){
+  hqGT=0; hqPauseT=0;
+  hqUpdateUI();
+  hqRunning=true;
+  const btn=document.getElementById('hqPauseBtn');
+  if(btn) btn.textContent='■ PAUSE';
+  if(hqRAF){cancelAnimationFrame(hqRAF);hqRAF=null;}
+  hqStart();
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const spd=document.getElementById('hqSpeedSlider');
+  if(spd) spd.addEventListener('input',e=>{hqSpeed=parseFloat(e.target.value);});
+  hqUpdateUI();
+});
 
 </script>
 </body>
