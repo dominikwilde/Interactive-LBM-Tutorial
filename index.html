@@ -293,6 +293,36 @@
     border-radius: 4px;
     padding: 24px;
     margin: 32px 0;
+    resize: vertical;          /* browser native resize — works on the container */
+  }
+
+  /* Resizable sim canvas wrapper */
+  .sim-canvas-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .sim-resize-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    user-select: none;
+  }
+
+  .sim-resize-bar input[type=range] {
+    width: 110px;
+    accent-color: var(--accent);
+    cursor: pointer;
   }
 
   .sim-header {
@@ -1014,7 +1044,14 @@
         </div>
       </div>
 
-      <canvas id="lbmCanvas" width="600" height="600" style="width:100%;aspect-ratio:1;display:block;border:1px solid var(--border);border-radius:2px;"></canvas>
+      <div class="sim-canvas-wrap" id="lbmWrap">
+        <canvas id="lbmCanvas" width="600" height="600" style="width:100%;aspect-ratio:1;display:block;border:none;border-radius:2px;"></canvas>
+      </div>
+      <div class="sim-resize-bar">
+        <label for="lbmSizeSlider">SIZE</label>
+        <input type="range" id="lbmSizeSlider" min="280" max="900" value="680" step="10"
+               oninput="document.getElementById('lbmWrap').style.maxWidth=this.value+'px'">
+      </div>
 
       <div class="param-row">
         <div class="param-group">
@@ -1086,7 +1123,14 @@
         </div>
       </div>
 
-      <canvas id="kvCanvas" width="720" height="300" style="width:100%;display:block;border:1px solid var(--border);border-radius:2px;"></canvas>
+      <div class="sim-canvas-wrap" id="kvWrap">
+        <canvas id="kvCanvas" width="720" height="300" style="width:100%;display:block;border:none;border-radius:2px;"></canvas>
+      </div>
+      <div class="sim-resize-bar">
+        <label for="kvSizeSlider">SIZE</label>
+        <input type="range" id="kvSizeSlider" min="280" max="900" value="680" step="10"
+               oninput="document.getElementById('kvWrap').style.maxWidth=this.value+'px'">
+      </div>
 
       <div class="param-row">
         <div class="param-group">
@@ -1241,7 +1285,14 @@
         </div>
       </div>
       <div class="slbm-grid">
-        <canvas id="slbmCanvas" width="580" height="520" style="width:100%;display:block;border:1px solid var(--border);border-radius:3px;background:#070b12;"></canvas>
+        <div class="sim-canvas-wrap" id="slbmWrap">
+          <canvas id="slbmCanvas" width="580" height="520" style="width:100%;display:block;border:none;border-radius:3px;background:#070b12;"></canvas>
+        </div>
+        <div class="sim-resize-bar">
+          <label for="slbmSizeSlider">SIZE</label>
+          <input type="range" id="slbmSizeSlider" min="280" max="900" value="680" step="10"
+                 oninput="document.getElementById('slbmWrap').style.maxWidth=this.value+'px'">
+        </div>
         <div style="font-family:'Space Mono',monospace;font-size:11px;line-height:1.9;color:var(--text-dim);">
           <div id="slbmStepTitle" style="color:var(--accent);font-size:12px;letter-spacing:1px;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:8px;">STEP 1</div>
           <div id="slbmStepDesc" style="font-size:10.5px;line-height:1.8;color:var(--text);">Initialising...</div>
@@ -1299,7 +1350,30 @@
 let currentSection = 0;
 const totalSections = 9;
 
+function pauseAllSims() {
+  // Lid-driven cavity
+  if (typeof running !== 'undefined' && running) {
+    running = false;
+    const pb = document.getElementById('playBtn');
+    if (pb) pb.textContent = '▶ PLAY';
+  }
+  // Kármán vortex street
+  if (typeof kvRunning !== 'undefined' && kvRunning) {
+    kvRunning = false;
+    const kb = document.getElementById('kvPlayBtn');
+    if (kb) kb.textContent = '▶ PLAY';
+  }
+  // Semi-Lagrangian
+  if (typeof slbmRunning !== 'undefined' && slbmRunning) {
+    slbmRunning = false;
+    const sb = document.getElementById('slbmPlayBtn');
+    if (sb) sb.textContent = '▶ PLAY';
+  }
+}
+
 function goSection(n) {
+  pauseAllSims();
+
   document.querySelectorAll('.section').forEach((s,i) => {
     s.classList.toggle('active', i === n);
   });
@@ -1311,9 +1385,9 @@ function goSection(n) {
   window.scrollTo({top:0, behavior:'smooth'});
 
   if (n === 4) { scInitIfNeeded(); flyInitIfNeeded(); }
-  if (n === 5) initSim();
-  if (n === 6) initKarman();
-  if (n === 8) slbmInitIfNeeded();
+  if (n === 5) { initSim(); running = true; const pb = document.getElementById('playBtn'); if(pb) pb.textContent = '■ PAUSE'; }
+  if (n === 6) { initKarman(); kvRunning = true; const kb = document.getElementById('kvPlayBtn'); if(kb) kb.textContent = '■ PAUSE'; }
+  if (n === 8) { slbmInitIfNeeded(); slbmRunning = true; slbmStart(); const sb = document.getElementById('slbmPlayBtn'); if(sb) sb.textContent = '■ PAUSE'; }
 
   // Re-render KaTeX in the newly visible section (catches formulas hidden on initial load)
   if (window.katexOpts) {
