@@ -383,6 +383,12 @@
     cursor: crosshair;
   }
 
+  .d3q27-layer-btn.active-layer {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--highlight);
+  }
+
   .param-row {
     display: flex;
     gap: 24px;
@@ -471,47 +477,6 @@
   .step-num::before { content: counter(step, decimal-leading-zero); }
 
   /* Quiz */
-  .quiz {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent2);
-    padding: 24px;
-    margin: 32px 0;
-    border-radius: 0 4px 4px 0;
-  }
-
-  .quiz-q {
-    font-size: 1.05rem;
-    color: var(--text-bright);
-    margin-bottom: 16px;
-  }
-
-  .quiz-options { display: flex; flex-direction: column; gap: 10px; }
-
-  .quiz-opt {
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    padding: 10px 16px;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text);
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.2s;
-    border-radius: 2px;
-  }
-
-  .quiz-opt:hover { border-color: var(--accent); color: var(--accent); }
-  .quiz-opt.correct { border-color: var(--accent3); color: var(--accent3); background: rgba(57,255,20,0.06); }
-  .quiz-opt.wrong { border-color: #ff4466; color: #ff4466; background: rgba(255,68,102,0.06); }
-
-  .quiz-feedback {
-    margin-top: 14px;
-    font-size: 14px;
-    font-family: 'Space Mono', monospace;
-    min-height: 20px;
-    color: var(--text-dim);
-  }
 
   /* Progress bar */
   .progress-bar {
@@ -672,15 +637,6 @@
       <li><strong>Equilibrium expansion</strong>: \(f^\mathrm{eq}\) is approximated by its second-order Hermite expansion in the <em>flow</em> velocity \(\mathbf{u}\) (valid for \(Ma \ll 1\)), giving \(f_i^\mathrm{eq} = w_i\rho\bigl[1 + \tfrac{\mathbf{e}_i\cdot\mathbf{u}}{c_s^2} + \tfrac{(\mathbf{e}_i\cdot\mathbf{u})^2}{2c_s^4} - \tfrac{u^2}{2c_s^2}\bigr]\).</li>
       <li><strong>Time integration</strong>: the trapezoidal rule plus a variable substitution (He &amp; Luo 1997) yields the explicit update \(f_i^* = f_i - \tfrac{1}{\tau}[f_i - f_i^\mathrm{eq}]\) in lattice units (\(\Delta t=1\)). The substitution re-parametrises: the physical relaxation time \(\tau_\text{phys}\) (in seconds) maps to the LBM parameter \(\tau = \tau_\text{phys}/\Delta t - \tfrac{1}{2}\). Throughout this tutorial \(\tau\) always refers to this LBM parameter, so the viscosity formula \(\nu = \tfrac{1}{3}(\tau-\tfrac{1}{2})\) is consistent as written.</li>
     </ol>
-
-    <div class="quiz">
-      <p class="quiz-q">What does LBM simulate at the microscopic level to recover macroscopic fluid behavior?</p>
-      <div class="quiz-options">
-        <button class="quiz-opt" onclick="checkQuiz(this, false)">Individual molecules and their exact trajectories</button>
-        <button class="quiz-opt" onclick="checkQuiz(this, true)">Statistical distributions of fictitious particles on a lattice</button>
-        <button class="quiz-opt" onclick="checkQuiz(this, false)">Continuous velocity and pressure fields directly</button>
-        <button class="quiz-opt" onclick="checkQuiz(this, false)">Finite element approximations of the Navier-Stokes equations</button>
-      </div>
       <div class="quiz-feedback" id="quizFeedback0"></div>
     </div>
 
@@ -728,15 +684,49 @@
     <h3>The Lattice in 3D</h3>
     <p>For 3D simulations, <em>D3Q19</em> (19 velocities) or <em>D3Q27</em> (27 velocities) are common. The same principles apply: more velocities allow higher-order moments to be reproduced exactly, reducing anisotropy errors at the cost of memory and compute.</p>
 
-    <div class="quiz">
-      <p class="quiz-q">Why do diagonal directions in D2Q9 have smaller weights (1/36) than orthogonal directions (1/9)?</p>
-      <div class="quiz-options">
-        <button class="quiz-opt" onclick="checkQuiz2(this, false)">Because particles move slower diagonally</button>
-        <button class="quiz-opt" onclick="checkQuiz2(this, false)">It is arbitrary — any weights would work</button>
-        <button class="quiz-opt" onclick="checkQuiz2(this, true)">They follow from Gauss&ndash;Hermite quadrature: weights are chosen so that the key moment tensors of f<sup>eq</sup> match the Maxwellian exactly up to fourth order</button>
-        <button class="quiz-opt" onclick="checkQuiz2(this, false)">Diagonal directions are used only for boundary conditions</button>
+    <p>D3Q27 is the natural 3D extension of D2Q9 — a full 3×3×3 tensor product of {−1, 0, +1} in each axis. Every node connects to all 26 neighbours plus itself. The weights follow the same Gauss–Hermite logic, now in three dimensions:</p>
+
+    <div class="formula">
+      <span class="label">D3Q27 Weights</span>
+      $$w_{\mathbf{e}} = w_{e_x}\,w_{e_y}\,w_{e_z}, \quad w_0=	frac{2}{3},\; w_{\pm1}=	frac{1}{6} \;\Rightarrow\; w_{000}=	frac{8}{27},\; w_{	ext{face}}=	frac{2}{27},\; w_{	ext{edge}}=	frac{1}{54},\; w_{	ext{corner}}=	frac{1}{216}$$
+    </div>
+
+    <!-- D3Q27 interactive canvas -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 24px;margin:20px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">▶ D3Q27 Stencil — Interactive</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);">SHOW LAYER:</span>
+          <button class="btn d3q27-layer-btn active-layer" data-layer="-1" onclick="d3q27ToggleLayer(-1,this)">z = −1</button>
+          <button class="btn d3q27-layer-btn active-layer" data-layer="0"  onclick="d3q27ToggleLayer(0,this)">z = 0</button>
+          <button class="btn d3q27-layer-btn active-layer" data-layer="1"  onclick="d3q27ToggleLayer(1,this)">z = +1</button>
+          <button class="btn" onclick="d3q27Reset()" style="margin-left:8px;">↺ RESET</button>
+        </div>
       </div>
-      <div class="quiz-feedback" id="quizFeedback1"></div>
+      <div style="display:grid;grid-template-columns:1fr 260px;gap:20px;align-items:start;">
+        <div>
+          <canvas id="d3q27Canvas" width="480" height="420"
+            style="width:100%;display:block;border:1px solid var(--border);border-radius:2px;background:#070b12;cursor:grab;"
+            onmousedown="d3q27MouseDown(event)" onmousemove="d3q27MouseMove(event)"
+            onmouseup="d3q27MouseUp()" onmouseleave="d3q27MouseUp()"
+            ontouchstart="d3q27TouchStart(event)" ontouchmove="d3q27TouchMove(event)" ontouchend="d3q27MouseUp()">
+          </canvas>
+          <p style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:6px;">
+            🖱 Drag to rotate · Toggle layers above · Hover for node info
+          </p>
+        </div>
+        <div id="d3q27Info" style="font-family:'Space Mono',monospace;font-size:11px;line-height:2;color:var(--text-dim);">
+          <div style="color:var(--accent);font-size:10px;letter-spacing:1px;margin-bottom:8px;">NODE INFO</div>
+          <div>Hover a node to inspect</div>
+        </div>
+      </div>
+      <!-- Legend -->
+      <div style="display:flex;gap:20px;margin-top:12px;flex-wrap:wrap;font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);">
+        <span>● <span style="color:#00d4ff">Centre</span> — rest (q=0), w=8/27</span>
+        <span>● <span style="color:#4ade80">Face</span> — 6 nodes, w=2/27</span>
+        <span>● <span style="color:#f97316">Edge</span> — 12 nodes, w=1/54</span>
+        <span>● <span style="color:#a78bfa">Corner</span> — 8 nodes, w=1/216</span>
+      </div>
     </div>
 
     <div class="section-nav">
@@ -812,15 +802,6 @@
       </ul>
       <p style="margin:8px 0 0 0;font-size:0.88em;color:var(--text-dim);">This is why \(\tau\) controls viscosity, and why the method is only valid for \(Ma \ll 1\): higher-order expansion terms produce \(O(Ma^3)\) errors in the momentum equation.</p>
     </div>
-
-    <div class="quiz">
-      <p class="quiz-q">What happens to fluid viscosity as the relaxation time τ → 0.5?</p>
-      <div class="quiz-options">
-        <button class="quiz-opt" onclick="checkQuiz3(this, false)">Viscosity increases → very thick fluid</button>
-        <button class="quiz-opt" onclick="checkQuiz3(this, true)">Viscosity → 0 → inviscid / numerical instability</button>
-        <button class="quiz-opt" onclick="checkQuiz3(this, false)">Viscosity increases — the fluid becomes more stable</button>
-        <button class="quiz-opt" onclick="checkQuiz3(this, false)">Nothing changes — τ does not affect viscosity</button>
-      </div>
       <div class="quiz-feedback" id="quizFeedback2"></div>
     </div>
 
@@ -906,35 +887,11 @@
   <section class="section" id="sec4">
     <h2><span class="num">05 · INTERACTIVE</span>Streaming &amp; Collision Step by Step</h2>
 
-    <p>This interactive demo lets you walk through a single LBM timestep on a small <strong>7×7 lattice</strong>, one sub-step at a time. Each lattice cell shows its 9 distribution values as a colour-coded 3×3 sub-grid. <strong>Click any cell</strong> to focus on it — the panel below will show exactly which values it holds, where they came from during streaming, and how they change during collision.</p>
-
-    <!-- ── Top controls ── -->
-    <div style="display:flex;gap:12px;margin:24px 0 16px;flex-wrap:wrap;align-items:center;">
-      <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:1px;">PHASE:</span>
-      <span id="scPhasePill" style="font-family:'Space Mono',monospace;font-size:12px;padding:6px 18px;border:1px solid var(--accent);color:var(--accent);border-radius:2px;background:var(--highlight);white-space:nowrap;">INITIAL STATE</span>
-      <div style="flex:1;min-width:12px;"></div>
-      <button class="btn" onclick="scPrev()" id="scPrevBtn" disabled>← PREV</button>
-      <button class="btn primary" onclick="scNext()" id="scNextBtn">NEXT STEP →</button>
-      <button class="btn" onclick="scReset()">↺ RESET</button>
-    </div>
-
-
-
-    <!-- ── Progress track ── -->
-    <div style="display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border);border-radius:3px;overflow:hidden;font-family:'Space Mono',monospace;font-size:10px;">
-      <div id="scTrack0" class="sc-track active-track" onclick="scGoPhase(0)">INITIAL</div>
-      <div id="scTrack1" class="sc-track" onclick="scGoPhase(1)">STREAM ARROWS</div>
-      <div id="scTrack2" class="sc-track" onclick="scGoPhase(2)">POST-STREAM</div>
-      <div id="scTrack3" class="sc-track" onclick="scGoPhase(3)">COLLISION Δ</div>
-      <div id="scTrack4" class="sc-track" onclick="scGoPhase(4)">POST-COLLISION</div>
-    </div>
-
-    <!-- ── Explanation box ── -->
-    <div class="info-box" data-label="What's happening" style="margin-bottom:20px;min-height:72px;">
-      <p id="scExplainText" style="margin:0;font-size:0.95rem;line-height:1.6;"></p>
-    </div>
+    <p>Two complementary visualizations of the same process: first watch distributions flow continuously across the lattice, then step through a single timestep cell-by-cell to see exactly what changes at each phase.</p>
 
     <!-- ── Flying-bullet streaming visualisation ── -->
+    <h3 style="margin:32px 0 8px;">Part 1 — Streaming Animation</h3>
+    <p style="margin:0 0 16px;color:var(--text-dim);font-size:0.92em;">Watch distribution packets travel across the lattice in real time. Each coloured bullet is one f<sub>i</sub> value moving to its neighbour. Click any node to highlight its outgoing streams.</p>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 24px;margin-bottom:24px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
         <span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">▶ Streaming Animation — distributions in flight</span>
@@ -962,6 +919,34 @@
         <span>Bullet size ∝ fᵢ value</span>
         <span>Each wave = one streaming timestep</span>
       </div>
+    </div>
+
+    <!-- ── Step-by-step section ── -->
+    <h3 style="margin:40px 0 8px;">Part 2 — Step-by-Step Walkthrough</h3>
+    <p style="margin:0 0 20px;color:var(--text-dim);font-size:0.92em;">Step through a single LBM timestep manually on a 7×7 lattice. Use <strong>NEXT STEP →</strong> to advance through each phase. Click any cell to inspect its distribution values and see exactly what changes during streaming and collision.</p>
+
+    <!-- ── Step controls ── -->
+    <div style="display:flex;gap:12px;margin:0 0 16px;flex-wrap:wrap;align-items:center;">
+      <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:1px;">PHASE:</span>
+      <span id="scPhasePill" style="font-family:'Space Mono',monospace;font-size:12px;padding:6px 18px;border:1px solid var(--accent);color:var(--accent);border-radius:2px;background:var(--highlight);white-space:nowrap;">INITIAL STATE</span>
+      <div style="flex:1;min-width:12px;"></div>
+      <button class="btn" onclick="scPrev()" id="scPrevBtn" disabled>← PREV</button>
+      <button class="btn primary" onclick="scNext()" id="scNextBtn">NEXT STEP →</button>
+      <button class="btn" onclick="scReset()">↺ RESET</button>
+    </div>
+
+    <!-- ── Progress track ── -->
+    <div style="display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border);border-radius:3px;overflow:hidden;font-family:'Space Mono',monospace;font-size:10px;">
+      <div id="scTrack0" class="sc-track active-track" onclick="scGoPhase(0)">INITIAL</div>
+      <div id="scTrack1" class="sc-track" onclick="scGoPhase(1)">STREAM ARROWS</div>
+      <div id="scTrack2" class="sc-track" onclick="scGoPhase(2)">POST-STREAM</div>
+      <div id="scTrack3" class="sc-track" onclick="scGoPhase(3)">COLLISION Δ</div>
+      <div id="scTrack4" class="sc-track" onclick="scGoPhase(4)">POST-COLLISION</div>
+    </div>
+
+    <!-- ── Explanation box ── -->
+    <div class="info-box" data-label="What's happening" style="margin-bottom:20px;min-height:72px;">
+      <p id="scExplainText" style="margin:0;font-size:0.95rem;line-height:1.6;"></p>
     </div>
 
     <!-- ── τ slider ── -->
@@ -1311,13 +1296,13 @@
       </div>
       <!-- Step progress bar -->
       <div style="display:flex;gap:0;margin-top:14px;border:1px solid var(--border);border-radius:3px;overflow:hidden;font-family:'Space Mono',monospace;font-size:9px;">
-        <div id="slbmT0" class="sc-track active-track" style="flex:1;text-align:center;padding:5px 0;cursor:default;">0 · D2Q9</div>
-        <div id="slbmT1" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:default;">1 · MESH</div>
-        <div id="slbmT2" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:default;">2 · DEPARTURE</div>
-        <div id="slbmT3" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:default;">3 · ZOOM</div>
-        <div id="slbmT4" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:default;">4 · GL NODES</div>
-        <div id="slbmT5" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:default;">5 · INTERP</div>
-        <div id="slbmT6" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:default;">6 · STREAM</div>
+        <div id="slbmT0" class="sc-track active-track" style="flex:1;text-align:center;padding:5px 0;cursor:pointer;" onclick="slbmGoPhase(0)">0 · D2Q9</div>
+        <div id="slbmT1" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:pointer;" onclick="slbmGoPhase(1)">1 · MESH</div>
+        <div id="slbmT2" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:pointer;" onclick="slbmGoPhase(2)">2 · DEPARTURE</div>
+        <div id="slbmT3" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:pointer;" onclick="slbmGoPhase(3)">3 · ZOOM</div>
+        <div id="slbmT4" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:pointer;" onclick="slbmGoPhase(4)">4 · GL NODES</div>
+        <div id="slbmT5" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:pointer;" onclick="slbmGoPhase(5)">5 · INTERP</div>
+        <div id="slbmT6" class="sc-track" style="flex:1;text-align:center;padding:5px 0;cursor:pointer;" onclick="slbmGoPhase(6)">6 · STREAM</div>
       </div>
     </div>
 
@@ -1332,6 +1317,11 @@
 
     <div class="info-box" data-label="Reference: Krämer et al. (2017)">
       <p style="margin:0;font-size:0.92rem;">A. Krämer, K. Küllmer, D. Reith, W. Joppich, H. Foysi — <em>Semi-Lagrangian off-lattice Boltzmann method for weakly compressible flows</em>, Phys. Rev. E 95, 023305 (2017). The method enables second- and higher-order accurate LBM on arbitrary unstructured meshes, with computational cost comparable to the standard lattice Boltzmann method.</p>
+    </div>
+
+    <div class="info-box" data-label="Implementation: NATriuM">
+      <p style="margin:0 0 10px 0;font-size:0.92rem;"><strong><a href="https://github.com/lettucecfd/NATriuM" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">NATriuM</a></strong> is an open-source C++ solver implementing exactly the algorithm shown in this section — Semi-Lagrangian streaming with high-order Gauss–Lobatto–Chebyshev interpolation on unstructured meshes. It also provides a spectral-element discontinuous Galerkin (SEDG) streaming alternative and supports 2D/3D weakly and fully compressible viscous flows.</p>
+      <p style="margin:0;font-size:0.92rem;">NATriuM is built on top of <strong><a href="https://www.dealii.org" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">deal.II</a></strong>, a widely-used open-source finite element library (C++) that provides unstructured mesh handling, high-order quadrature, and MPI-parallel infrastructure — the foundation on which NATriuM's grid management and interpolation are built.</p>
     </div>
 
     <div class="section-nav">
@@ -1430,43 +1420,6 @@ function buildGrid() {
   }
 }
 buildGrid();
-
-// ═══════════════════════════════════════
-// QUIZ
-// ═══════════════════════════════════════
-function handleQuiz(btn, correct, feedbackId, feedbacks) {
-  const opts = btn.parentElement.querySelectorAll('.quiz-opt');
-  opts.forEach(o => { o.disabled = true; o.classList.remove('correct','wrong'); });
-  btn.classList.add(correct ? 'correct' : 'wrong');
-  if (correct) opts.forEach(o => { if (o.dataset.correct==='true' || o===btn) o.classList.add('correct'); });
-  document.getElementById(feedbackId).textContent = correct ? feedbacks[0] : feedbacks[1];
-}
-
-document.querySelectorAll('.quiz-opt').forEach(b => b.dataset.correct = 'false');
-
-function checkQuiz(btn, correct) {
-  btn.parentElement.querySelectorAll('.quiz-opt').forEach(o => o.disabled=true);
-  btn.classList.add(correct ? 'correct' : 'wrong');
-  document.getElementById('quizFeedback0').textContent = correct
-    ? '✓ Correct! LBM tracks statistical distributions, not individual molecules.'
-    : '✗ Not quite. LBM is a mesoscale method — between molecular dynamics and continuum CFD.';
-}
-
-function checkQuiz2(btn, correct) {
-  btn.parentElement.querySelectorAll('.quiz-opt').forEach(o => o.disabled=true);
-  btn.classList.add(correct ? 'correct' : 'wrong');
-  document.getElementById('quizFeedback1').textContent = correct
-    ? '✓ Correct! The weights are determined by Gauss–Hermite quadrature so that the discrete lattice reproduces all moments of fᵉᶠ through fourth order, recovering isotropic Navier-Stokes dynamics.'
-    : '✗ The weights are carefully derived to ensure the lattice recovers isotropic fluid behavior.';
-}
-
-function checkQuiz3(btn, correct) {
-  btn.parentElement.querySelectorAll('.quiz-opt').forEach(o => o.disabled=true);
-  btn.classList.add(correct ? 'correct' : 'wrong');
-  document.getElementById('quizFeedback2').textContent = correct
-    ? '✓ Correct! ν = cs²(τ−0.5), so τ→0.5 means ν→0. Below τ=0.5 the scheme is unstable.'
-    : '✗ Remember: ν = (1/3)(τ − 0.5). As τ → 0.5 the viscosity vanishes, and at τ = 0.5 exactly the BGK operator is singular — the simulation diverges immediately. τ must stay strictly above 0.5.';
-}
 
 
 // ═══════════════════════════════════════════════════════════════════
@@ -3621,7 +3574,15 @@ function slbmResizeCanvas() {
 }
 
 (function() {
-  const obs = new ResizeObserver(() => slbmResizeCanvas());
+  let rafPending = false;
+  const obs = new ResizeObserver(() => {
+    // Defer to rAF so the resize runs outside the ResizeObserver callback,
+    // preventing the "loop completed with undelivered notifications" error.
+    if (!rafPending) {
+      rafPending = true;
+      requestAnimationFrame(() => { rafPending = false; slbmResizeCanvas(); });
+    }
+  });
   const waitCanvas = setInterval(() => {
     const c = document.getElementById('slbmCanvas');
     if (c) { obs.observe(c); slbmResizeCanvas(); clearInterval(waitCanvas); }
@@ -4085,10 +4046,28 @@ function slbmRender(dt) {
     ctx.beginPath(); ctx.arc(dpzx, dpzy, dpPulse+10, 0, Math.PI*2);
     ctx.fillStyle = '#a78bfa'; ctx.fill();
     ctx.globalAlpha = dpAlpha;
-    ctx.fillStyle = '#c4b5fd';
-    ctx.font = 'bold 13px Space Mono, monospace';
-    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText('xD (ξD=' + DEPART_XI.toFixed(2) + ', ηD=' + DEPART_ETA.toFixed(2) + ')', dpzx+12, dpzy);
+    // xD label: above the dot with a background pill — readable even when GL nodes are dense
+    {
+      const lbl = 'xD  (ξD=' + DEPART_XI.toFixed(2) + ',  ηD=' + DEPART_ETA.toFixed(2) + ')';
+      ctx.save();
+      ctx.font = 'bold 12px Space Mono, monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      const tw = ctx.measureText(lbl).width;
+      const lx = dpzx;
+      const ly = dpzy - dpPulse - 14;  // above the pulsing circle
+      const pad = 7;
+      // Dark background pill
+      ctx.globalAlpha = dpAlpha;
+      ctx.fillStyle = 'rgba(12,18,32,0.88)';
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(lx - tw/2 - pad, ly - 15, tw + pad*2, 18, 4);
+      else ctx.rect(lx - tw/2 - pad, ly - 15, tw + pad*2, 18);
+      ctx.fill();
+      // Text
+      ctx.fillStyle = '#c4b5fd';
+      ctx.fillText(lbl, lx, ly);
+      ctx.restore();
+    }
 
     // Step 3+: draw GL nodes — faint in step 3, gaining colour/size in 4-5
     if (s >= 3) {
@@ -4286,13 +4265,28 @@ function slbmRender(dt) {
         ctx.fill();
         ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
 
-        // f* value label fades in
-        ctx.globalAlpha = accEp;
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 13px Space Mono, monospace';
-        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        const fDisp = (F_DEPART * accEp).toFixed(4);
-        ctx.fillText('f*(xD) = ' + fDisp, dpzx + discR + 6, dpzy);
+        // f* value label: above the disc with background pill — always readable
+        {
+          const fDisp = (F_DEPART * accEp).toFixed(4);
+          const lbl = 'f*(xD) = ' + fDisp;
+          ctx.font = 'bold 12px Space Mono, monospace';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          const tw = ctx.measureText(lbl).width;
+          const lx = dpzx;
+          const ly = dpzy + discR + 26;  // below the disc, clear of the xD label above
+          const pad = 7;
+          // Background pill
+          ctx.globalAlpha = accEp * 0.88;
+          ctx.fillStyle = 'rgba(12,18,32,0.90)';
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(lx - tw/2 - pad, ly - 2, tw + pad*2, 18, 4);
+          else ctx.rect(lx - tw/2 - pad, ly - 2, tw + pad*2, 18);
+          ctx.fill();
+          // Text
+          ctx.globalAlpha = accEp;
+          ctx.fillStyle = 'white';
+          ctx.fillText(lbl, lx, ly);
+        }
         ctx.restore();
       }
 
@@ -4386,6 +4380,20 @@ function slbmToggle() {
   if (slbmRunning) slbmStart();
 }
 
+function slbmGoPhase(k) {
+  // Jump to phase k, reset the phase timer, and pause so user can study it
+  slbmStepIdx   = k;
+  slbmStepTimer = 0;
+  slbmUpdateUI();
+  // Pause
+  slbmRunning = false;
+  const btn = document.getElementById('slbmPauseBtn');
+  if (btn) btn.textContent = '▶ PLAY';
+  // Still render one frame so the canvas updates immediately
+  const canvas = document.getElementById('slbmCanvas');
+  if (canvas) slbmRender(0);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const spd = document.getElementById('slbmSpeedSlider');
   if (spd) spd.addEventListener('input', e => { slbmSpeed = parseFloat(e.target.value); });
@@ -4397,6 +4405,233 @@ function slbmInitIfNeeded() {
   slbmUpdateUI();
   slbmStart();
 }
+
+
+// ═══════════════════════════════════════════════════════════════
+// D3Q27 INTERACTIVE 3D STENCIL
+// ═══════════════════════════════════════════════════════════════
+(function() {
+
+const WEIGHTS = {
+  0: 8/27,   // centre
+  1: 2/27,   // face
+  2: 1/54,   // edge
+  3: 1/216   // corner
+};
+const TYPE_LABEL = ['centre','face','edge','corner'];
+const TYPE_COLOR  = ['#00d4ff','#4ade80','#f97316','#a78bfa'];
+
+// Build all 27 nodes
+const NODES = [];
+for (let dz=-1; dz<=1; dz++) for (let dy=-1; dy<=1; dy++) for (let dx=-1; dx<=1; dx++) {
+  const n = Math.abs(dx)+Math.abs(dy)+Math.abs(dz);
+  const type = n===0 ? 0 : (n===1 ? 1 : (n===2 ? 2 : 3));
+  NODES.push({dx,dy,dz,type,w:WEIGHTS[type]});
+}
+
+// Rotation state
+let rotX = 0.42, rotY = -0.55;
+let dragging=false, lastMX=0, lastMY=0;
+let layerVis = {'-1':true,'0':true,'1':true};
+let hovered = null;
+
+function project(x,y,z, cx,cy, scale) {
+  // Isometric-ish with rotation around Y then X
+  const cosY=Math.cos(rotY), sinY=Math.sin(rotY);
+  const cosX=Math.cos(rotX), sinX=Math.sin(rotX);
+  const rx = x*cosY - z*sinY;
+  const ry2 = z*cosY + x*sinY;
+  const ry = y*cosX - ry2*sinX;
+  const rz = ry2*cosX + y*sinX;
+  return {sx: cx+rx*scale, sy: cy-ry*scale, depth: rz};
+}
+
+function drawD3Q27() {
+  const canvas = document.getElementById('d3q27Canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  const cx=W/2, cy=H/2, scale=W*0.18;
+
+  ctx.fillStyle='#070b12'; ctx.fillRect(0,0,W,H);
+
+  // Depth-sort nodes
+  const projected = NODES.map((n,i) => {
+    const p = project(n.dx,n.dy,n.dz,cx,cy,scale);
+    return {...n,...p,idx:i};
+  }).sort((a,b)=>a.depth-b.depth);
+
+  // Draw grid box outline (faint)
+  ctx.strokeStyle='rgba(30,58,95,0.6)'; ctx.lineWidth=1;
+  const corners3 = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],
+                    [-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+  const edges3 = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],
+                  [0,4],[1,5],[2,6],[3,7]];
+  const cp = corners3.map(([x,y,z])=>project(x,y,z,cx,cy,scale));
+  edges3.forEach(([a,b])=>{
+    ctx.beginPath(); ctx.moveTo(cp[a].sx,cp[a].sy); ctx.lineTo(cp[b].sx,cp[b].sy); ctx.stroke();
+  });
+
+  // Draw arrows from centre to each visible node
+  const cen = project(0,0,0,cx,cy,scale);
+  projected.forEach(n=>{
+    if (n.dx===0&&n.dy===0&&n.dz===0) return;
+    if (!layerVis[String(n.dz)]) return;
+    const col = TYPE_COLOR[n.type];
+    const alpha = (n.type===3)?0.5:0.8;
+    ctx.save(); ctx.globalAlpha=alpha;
+    ctx.strokeStyle=col; ctx.lineWidth = n.type===0?2:1.2;
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(cen.sx,cen.sy); ctx.lineTo(n.sx,n.sy); ctx.stroke();
+    // Arrowhead
+    const ang=Math.atan2(n.sy-cen.sy,n.sx-cen.sx);
+    const hl=7;
+    ctx.fillStyle=col;
+    ctx.beginPath();
+    ctx.moveTo(n.sx,n.sy);
+    ctx.lineTo(n.sx-hl*Math.cos(ang-0.35),n.sy-hl*Math.sin(ang-0.35));
+    ctx.lineTo(n.sx-hl*Math.cos(ang+0.35),n.sy-hl*Math.sin(ang+0.35));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  });
+
+  // Draw nodes (depth-sorted, front-to-back so front nodes appear on top)
+  projected.forEach(n=>{
+    if (!layerVis[String(n.dz)]) return;
+    const isCenter = n.dx===0&&n.dy===0&&n.dz===0;
+    const isHov = hovered===n.idx;
+    const r = isCenter ? 10 : (n.type===1?7:n.type===2?6:5);
+    const col = TYPE_COLOR[n.type];
+
+    // Glow halo for hovered
+    if (isHov) {
+      ctx.save(); ctx.globalAlpha=0.35;
+      ctx.beginPath(); ctx.arc(n.sx,n.sy,r+8,0,Math.PI*2);
+      ctx.fillStyle=col; ctx.fill(); ctx.restore();
+    }
+    ctx.beginPath(); ctx.arc(n.sx,n.sy,r,0,Math.PI*2);
+    ctx.fillStyle=col; ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.stroke();
+
+    // z-layer label for centre of each layer
+    if (n.dx===0&&n.dy===0) {
+      ctx.fillStyle='rgba(255,255,255,0.45)';
+      ctx.font='9px Space Mono,monospace';
+      ctx.textAlign='center'; ctx.textBaseline='bottom';
+      ctx.fillText('z='+n.dz, n.sx, n.sy-r-3);
+    }
+  });
+
+  // Axis labels
+  const axLen=1.35;
+  [['x',axLen,0,0,'#f97316'],['y',0,axLen,0,'#4ade80'],['z',0,0,axLen,'#00d4ff']].forEach(([lbl,ax,ay,az,col])=>{
+    const p=project(ax,ay,az,cx,cy,scale);
+    ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.globalAlpha=0.7;
+    ctx.beginPath(); ctx.moveTo(cen.sx,cen.sy); ctx.lineTo(p.sx,p.sy); ctx.stroke();
+    ctx.globalAlpha=1; ctx.fillStyle=col; ctx.font='bold 11px Space Mono,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(lbl,p.sx,p.sy);
+  });
+  ctx.globalAlpha=1;
+}
+
+// Hit test for hover
+function hitTest(mx,my) {
+  const canvas=document.getElementById('d3q27Canvas');
+  if(!canvas) return null;
+  const W=canvas.width, H=canvas.height, cx=W/2, cy=H/2, scale=W*0.18;
+  const rect=canvas.getBoundingClientRect();
+  const scaleX=W/rect.width, scaleY=H/rect.height;
+  const px=(mx-rect.left)*scaleX, py=(my-rect.top)*scaleY;
+  let best=null, bestD=Infinity;
+  NODES.forEach((n,i)=>{
+    if(!layerVis[String(n.dz)]) return;
+    const p=project(n.dx,n.dy,n.dz,cx,cy,scale);
+    const d=Math.hypot(p.sx-px,p.sy-py);
+    const r=n.dx===0&&n.dy===0&&n.dz===0?10:(n.type===1?7:n.type===2?6:5);
+    if(d<r+4&&d<bestD){bestD=d;best=i;}
+  });
+  return best;
+}
+
+function updateInfo(idx) {
+  const el=document.getElementById('d3q27Info'); if(!el) return;
+  if(idx===null){
+    el.innerHTML='<div style="color:var(--accent);font-size:10px;letter-spacing:1px;margin-bottom:8px;">NODE INFO</div><div>Hover a node to inspect</div>';
+    return;
+  }
+  const n=NODES[idx];
+  const wFrac = ['8/27','2/27','1/54','1/216'][n.type];
+  const wDec  = n.w.toFixed(5);
+  const speed = Math.sqrt(n.dx*n.dx+n.dy*n.dy+n.dz*n.dz).toFixed(0);
+  el.innerHTML=`
+    <div style="color:var(--accent);font-size:10px;letter-spacing:1px;margin-bottom:8px;">NODE INFO</div>
+    <div>e = (${n.dx}, ${n.dy}, ${n.dz})</div>
+    <div>type: <span style="color:${TYPE_COLOR[n.type]}">${TYPE_LABEL[n.type]}</span></div>
+    <div>|e| = ${speed}</div>
+    <div>w = ${wFrac}</div>
+    <div style="color:var(--text-dim);font-size:10px;">&nbsp;&nbsp;≈ ${wDec}</div>
+  `;
+}
+
+// Controls
+window.d3q27ToggleLayer = function(z, btn) {
+  const key=String(z);
+  layerVis[key]=!layerVis[key];
+  btn.classList.toggle('active-layer',layerVis[key]);
+  drawD3Q27();
+};
+window.d3q27Reset = function() {
+  rotX=0.42; rotY=-0.55;
+  layerVis={'-1':true,'0':true,'1':true};
+  document.querySelectorAll('.d3q27-layer-btn').forEach(b=>b.classList.add('active-layer'));
+  hovered=null; updateInfo(null); drawD3Q27();
+};
+
+// Mouse drag
+window.d3q27MouseDown = function(e){ dragging=true; lastMX=e.clientX; lastMY=e.clientY; e.preventDefault(); };
+window.d3q27MouseUp   = function(){ dragging=false; };
+window.d3q27MouseMove = function(e){
+  const canvas=document.getElementById('d3q27Canvas');
+  if(dragging){
+    rotY+=(e.clientX-lastMX)*0.012;
+    rotX+=(e.clientY-lastMY)*0.012;
+    rotX=Math.max(-Math.PI/2+0.05,Math.min(Math.PI/2-0.05,rotX));
+    lastMX=e.clientX; lastMY=e.clientY;
+    drawD3Q27();
+  } else {
+    const h=hitTest(e.clientX,e.clientY);
+    if(h!==hovered){ hovered=h; updateInfo(h); drawD3Q27(); }
+    if(canvas) canvas.style.cursor=h!==null?'pointer':'grab';
+  }
+};
+
+// Touch
+window.d3q27TouchStart = function(e){ const t=e.touches[0]; lastMX=t.clientX; lastMY=t.clientY; dragging=true; e.preventDefault(); };
+window.d3q27TouchMove  = function(e){ if(!dragging) return; const t=e.touches[0]; const fe={clientX:t.clientX,clientY:t.clientY}; d3q27MouseMove(fe); e.preventDefault(); };
+
+// Auto-slow rotation when idle
+let d3q27RAF=null;
+function d3q27AutoRotate(ts){
+  if(!dragging){ rotY+=0.003; drawD3Q27(); }
+  d3q27RAF=requestAnimationFrame(d3q27AutoRotate);
+}
+
+// Init when section 1 becomes visible (goSection already calls renderMathInElement there)
+const _origGoSection = window.goSection;
+// Hook into section activation — start/stop auto-rotate
+document.addEventListener('DOMContentLoaded', ()=>{
+  // Start rendering once the canvas exists
+  const wait=setInterval(()=>{
+    if(document.getElementById('d3q27Canvas')){
+      clearInterval(wait);
+      drawD3Q27();
+      d3q27RAF=requestAnimationFrame(d3q27AutoRotate);
+    }
+  },200);
+});
+
+})(); // end D3Q27 IIFE
 
 </script>
 </body>
